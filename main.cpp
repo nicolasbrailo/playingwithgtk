@@ -1,0 +1,228 @@
+#include <iostream>
+using namespace std;
+
+
+#include <gtk/gtk.h>
+#include <string>
+
+namespace Gtk_Helper {
+    using std::string;
+
+    template <class Widget, typename CB>
+    auto connect(Widget wdgt, const string &event, CB callback, void* data=NULL)
+        -> decltype( g_signal_connect(NULL, NULL, NULL, NULL) )
+    {
+        return g_signal_connect(wdgt, event.c_str(), G_CALLBACK(callback), data);
+    }
+}
+
+
+#include "ui_images.h"
+
+#include <gtk/gtk.h>
+#include <vector>
+using std::vector;
+class Gtk_Main_Window
+{
+    public:
+    GtkWidget *window;
+    vector<GtkWidget*> children_widgets;
+
+    public:
+    Gtk_Main_Window() :
+            window(gtk_window_new(GTK_WINDOW_TOPLEVEL))
+    {
+        // Set style
+        gtk_container_set_border_width(GTK_CONTAINER(window), 10);
+        gtk_widget_set_usize(window, 800, 600);
+
+        // Attach callbacks
+        Gtk_Helper::connect(window, "delete-event", Gtk_Main_Window::close_window);
+        Gtk_Helper::connect(window, "destroy", Gtk_Main_Window::quit);
+    }
+
+    void show()
+    {
+        for (auto i = children_widgets.begin(); i != children_widgets.end(); ++i)
+            gtk_widget_show(*i);
+
+        gtk_widget_show(this->window);
+    }
+
+    template <class T>
+    void add_widget(T widget)
+    {
+        children_widgets.push_back(widget);
+        gtk_container_add(GTK_CONTAINER(this->window), widget);
+    }
+
+    static gboolean close_window(GtkWidget*, GdkEvent*, gpointer)
+    {
+        return false; // Just close the window (will call quit)
+    }
+
+    static void quit(GtkWidget*, gpointer)
+    {
+        gtk_main_quit();
+    }
+};
+
+
+#include <string>
+using std::string;
+class Gtk_Simple_Button
+{
+    public:
+    GtkWidget *button;
+    Gtk_Main_Window &parent;
+
+    public:
+    Gtk_Simple_Button(Gtk_Main_Window &wnd, const string &lbl) :
+            button(gtk_button_new_with_label(lbl.c_str())),
+            parent(wnd)
+    {
+        Gtk_Helper::connect(button, "clicked", Gtk_Simple_Button::clicked, this);
+        wnd.add_widget(button);
+    }
+
+    private:
+    static void clicked(GtkWidget* w, gpointer self)
+    {
+        g_print("Hello world\n");
+        ((Gtk_Simple_Button*)self)->parent.quit(w, NULL);
+    }
+};
+
+
+#include "image_cache.h"
+
+
+class Image_Grid
+{
+    GtkWidget *grid;
+    vector<GtkWidget*> images;
+
+    public:
+    Image_Grid(Gtk_Main_Window &wnd)
+    {
+        grid = gtk_layout_new(NULL, NULL);
+        wnd.add_widget(this->grid);
+    }
+
+    void add_widget(GtkWidget *img)
+    {
+        this->images.push_back(img);
+    }
+
+    void load_images()
+    {
+        const unsigned COLS_PER_ROW = 4;
+        const unsigned X_SIZE = 140;
+        const unsigned Y_SIZE = 140;
+
+        for (unsigned i=0; i < images.size(); ++i)
+        {
+            int x = i % COLS_PER_ROW;
+            int y = i / COLS_PER_ROW;
+            GtkWidget *img = images[i];
+            gtk_widget_set_usize(img, X_SIZE, Y_SIZE);
+            gtk_layout_put((GtkLayout*)this->grid, img, (X_SIZE+10) * x, (Y_SIZE+10) * y);
+            gtk_widget_show(img);
+        }
+    }
+};
+
+
+
+class Gtk_Simple_Tree_Widget
+{
+    typedef decltype(gtk_list_store_new(1, G_TYPE_STRING)) store_t;
+
+    store_t list_store;
+    GtkWidget *view_widget;
+    GtkTreeModel *widget_model;
+
+    public:
+        Gtk_Simple_Tree_Widget()
+                : list_store(gtk_list_store_new(1, G_TYPE_STRING)),
+                  view_widget(gtk_tree_view_new()),
+                  widget_model(GTK_TREE_MODEL(list_store))
+        {
+            auto renderer = gtk_cell_renderer_text_new();
+            gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view_widget), -1, "Name", renderer, "text", 0, NULL);
+            gtk_tree_view_set_model(GTK_TREE_VIEW(view_widget), widget_model);
+
+
+            Gtk_Helper::connect(this->view_widget, "cursor-changed", Gtk_Simple_Tree_Widget::clicked, this);
+
+            GtkTreeIter iter;
+            gtk_list_store_append(list_store, &iter);
+            gtk_list_store_set(list_store, &iter, 0, "Foo", -1);
+            gtk_list_store_append(list_store, &iter);
+            gtk_list_store_set(list_store, &iter, 0, "Bar", -1);
+        }
+
+        ~Gtk_Simple_Tree_Widget()
+        {
+            g_object_unref(this->list_store);
+        }
+
+        operator GtkWidget* () { return this->view_widget; }
+
+    protected:
+    private:
+        static void clicked(GtkWidget*, gpointer)
+        {
+            g_print("Click\n");
+        }
+};
+
+
+
+int main(int argc, char *argv[])
+{
+    gtk_init(&argc, &argv);
+    Gtk_Main_Window wnd;
+
+    Gtk_Simple_Tree_Widget x;
+    gtk_container_add(GTK_CONTAINER(wnd.window), x);
+
+    gtk_widget_show_all(wnd.window);
+    gtk_main();
+    return 0;
+}
+
+
+
+int main2(int argc, char *argv[])
+{
+    vector<string> files = {"img/avestruz3zv.jpg",
+                            "img/no.jpg",
+                            "img/squirrel_overdose.jpg",
+                            "img/trained_monkey.png",
+                            "img/vincent2.jpg",
+                            "img/vincent3.jpg",
+                            "img/vincent4.jpg",
+                            "img/vincent.jpg"};
+
+    Magick_Thumbnail_Cache cache("150");
+
+    gtk_init(&argc, &argv);
+    Gtk_Main_Window wnd;
+    Image_Grid x(wnd);
+
+    for (auto i : files)
+    {
+        const Image_Cache::Mem_Image *img = cache[i];
+        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(x, img->get_length(), img->get_buf());
+    }
+
+    //Gtk_Simple_Button btn(wnd, "Hello");
+    //Gtk_Image img(wnd, "img/vincent.jpg");
+    //Gtk_Image_From_PNG_Buff imaag(wnd, img.get_length(), img.get_buf());
+    x.load_images();
+    wnd.show();
+    
+    gtk_main();
+    return 0;
+}
