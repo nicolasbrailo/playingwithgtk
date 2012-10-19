@@ -2,19 +2,8 @@
 using namespace std;
 
 
-#include <gtk/gtk.h>
+#include "gtk_helper/functions.h"
 #include <string>
-
-namespace Gtk_Helper {
-    using std::string;
-
-    template <class Widget, typename CB>
-    auto connect(Widget wdgt, const string &event, CB callback, void* data=NULL)
-        -> decltype( g_signal_connect(NULL, NULL, NULL, NULL) )
-    {
-        return g_signal_connect(wdgt, event.c_str(), G_CALLBACK(callback), data);
-    }
-}
 
 
 #include "ui_images.h"
@@ -134,57 +123,34 @@ class Image_Grid
 
 
 
-class Gtk_Simple_Tree_Widget
+#include "gtk_helper/simple_list_widget.h"
+
+class Directories_List : public Gtk_Helper::Simple_List_Widget
 {
-    typedef decltype(gtk_list_store_new(1, G_TYPE_STRING)) store_t;
-
-    store_t list_store;
-    GtkWidget *view_widget;
-    GtkTreeModel *widget_model;
-
-    public:
-        Gtk_Simple_Tree_Widget()
-                : list_store(gtk_list_store_new(1, G_TYPE_STRING)),
-                  view_widget(gtk_tree_view_new()),
-                  widget_model(GTK_TREE_MODEL(list_store))
-        {
-            auto renderer = gtk_cell_renderer_text_new();
-            gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view_widget), -1, "Name", renderer, "text", 0, NULL);
-            gtk_tree_view_set_model(GTK_TREE_VIEW(view_widget), widget_model);
-
-
-            Gtk_Helper::connect(this->view_widget, "cursor-changed", Gtk_Simple_Tree_Widget::clicked, this);
-
-            GtkTreeIter iter;
-            gtk_list_store_append(list_store, &iter);
-            gtk_list_store_set(list_store, &iter, 0, "Foo", -1);
-            gtk_list_store_append(list_store, &iter);
-            gtk_list_store_set(list_store, &iter, 0, "Bar", -1);
-        }
-
-        ~Gtk_Simple_Tree_Widget()
-        {
-            g_object_unref(this->list_store);
-        }
-
-        operator GtkWidget* () { return this->view_widget; }
-
     protected:
-    private:
-        static void clicked(GtkWidget*, gpointer)
+        void element_activated(const string &str)
         {
-            g_print("Click\n");
+            vector<string> lst;
+            lst.push_back("foo");
+            lst.push_back("bar");
+            lst.push_back("baz");
+            this->load_list(lst);
+            cout << str << endl;
         }
 };
 
 
-
+#include <vector>
 int main(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
 
-    Gtk_Simple_Tree_Widget x;
+    vector<string> lst;
+    lst.push_back("foo");
+    lst.push_back("bar");
+    Directories_List x;
+    x.load_list(lst);
     gtk_container_add(GTK_CONTAINER(wnd.window), x);
 
     gtk_widget_show_all(wnd.window);
