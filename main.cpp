@@ -124,19 +124,50 @@ class Image_Grid
 
 
 #include "gtk_helper/simple_list_widget.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <string>
+#include <vector>
 
 class Directories_List : public Gtk_Helper::Simple_List_Widget
 {
+    vector<string> read_dir(const string &path)
+    {
+        auto dp = opendir(path.c_str());
+        if (dp == NULL)
+        {
+            cerr << "Error reading " << path << endl;
+            return {};
+        }
+
+        vector<string> subdirs({".."});
+        struct dirent *ep;
+        while((ep = readdir(dp)))
+        {
+            if (DT_DIR != ep->d_type) continue;
+            // Skip hidden files and ., ..
+            if ('.' == ep->d_name[0]) continue;
+            subdirs.push_back(ep->d_name);
+        }
+
+        closedir(dp);
+        return subdirs;
+    }
+
     protected:
         void element_activated(const string &str)
         {
-            vector<string> lst;
-            lst.push_back("foo");
-            lst.push_back("bar");
-            lst.push_back("baz");
+            auto lst = this->read_dir("/home/nico/" + str);
             this->load_list(lst);
-            cout << str << endl;
         }
+
+    public:
+       Directories_List()
+       {
+           auto lst = this->read_dir("/home/nico");
+           this->load_list(lst);
+       }
 };
 
 
@@ -146,11 +177,7 @@ int main(int argc, char *argv[])
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
 
-    vector<string> lst;
-    lst.push_back("foo");
-    lst.push_back("bar");
     Directories_List x;
-    x.load_list(lst);
     gtk_container_add(GTK_CONTAINER(wnd.window), x);
 
     gtk_widget_show_all(wnd.window);
