@@ -5,22 +5,38 @@
 
 namespace Gtk_Helper {
 
+/**
+ * A wrapper for a GTK HBox with a variadic constructor, so we can quickly
+ * and easily build a box with as many elements as we need
+ */
 class Gtk_HBox
 {
     static const bool HOMOGENEOUS = false;
     static const unsigned SPACING = 2;
 
+    template <typename Head, typename... Tail>
+    void unpack(Head &elm, Tail&... rest...)
+    {
+        /* gboolean expand, gboolean fill, guint padding */
+        gtk_box_pack_start(GTK_BOX(this->widget), elm, false, false, 0);
+
+        unpack(rest...);
+    }
+
+    // End condition
+    void unpack(){}
+
     public:
         operator GtkWidget* (){ return this->widget; }
 
-        // TODO: Looks great for variadic tmpls
-        Gtk_HBox(GtkWidget* x, GtkWidget* y)
+        template <typename... Pack_List>
+        Gtk_HBox(Pack_List&... widgets...)
                 : widget(gtk_hbox_new(HOMOGENEOUS, SPACING))
         {
-            /* gboolean expand, gboolean fill, guint padding */
-            gtk_box_pack_start(GTK_BOX(this->widget), x, false, false, 0);
-            gtk_box_pack_start(GTK_BOX(this->widget), y, false, false, 0);
+            unpack(widgets...);
         }
+
+        Gtk_HBox(Gtk_HBox&) = delete;
 
     private:
         GtkWidget *widget;

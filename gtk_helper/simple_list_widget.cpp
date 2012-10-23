@@ -4,6 +4,7 @@ using namespace Gtk_Helper;
 #include <gtk/gtk.h>
 #include "functions.h"
 
+#include <iostream>
 
 static void cb_row_activated(GtkTreeView*, GtkTreePath *path,
                              GtkTreeViewColumn*, gpointer self_ptr)
@@ -49,7 +50,6 @@ void Simple_List_Widget::load_list(const vector<string>& lst)
 }
 
 
-#include <iostream>
 // TODO: throw up
 void Simple_List_Widget::row_activated(GtkTreePath *path)
 {

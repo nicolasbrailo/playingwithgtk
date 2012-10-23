@@ -37,6 +37,8 @@ class Simple_List_Widget
          */
         Simple_List_Widget();
 
+        Simple_List_Widget(Simple_List_Widget&) = delete;
+
         /**
          * Will free any used GTK resources
          */
