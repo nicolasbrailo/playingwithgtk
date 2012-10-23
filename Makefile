@@ -3,7 +3,7 @@ GTK_LD=`pkg-config --libs gtk+-2.0`
 GTK_I=`pkg-config --cflags gtk+-2.0`
 MAGICPP_I=`pkg-config --cflags Magick++`
 MAGICPP_LD=`pkg-config --libs Magick++`
-OBJ_FILES=main.o image_cache.o gtk_helper/simple_list_widget.o
+OBJ_FILES=main.o path_handler.o image_cache.o gtk_helper/simple_list_widget.o
 
 all: app
 

@@ -84,18 +84,17 @@ class Gtk_Simple_Button
 
 
 #include "image_cache.h"
-
-
 class Image_Grid
 {
     GtkWidget *grid;
     vector<GtkWidget*> images;
 
     public:
-    Image_Grid(Gtk_Main_Window &wnd)
+    operator GtkWidget* (){ return this->grid; }
+
+    Image_Grid()
     {
         grid = gtk_layout_new(NULL, NULL);
-        wnd.add_widget(this->grid);
     }
 
     void add_widget(GtkWidget *img)
@@ -123,71 +122,14 @@ class Image_Grid
 
 
 
-#include "gtk_helper/simple_list_widget.h"
-#include <stdio.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <string>
-#include <vector>
+#include "path_handler.h"
 
-class Directories_List : public Gtk_Helper::Simple_List_Widget
-{
-    vector<string> read_dir(const string &path)
-    {
-        auto dp = opendir(path.c_str());
-        if (dp == NULL)
-        {
-            cerr << "Error reading " << path << endl;
-            return {};
-        }
-
-        vector<string> subdirs({".."});
-        struct dirent *ep;
-        while((ep = readdir(dp)))
-        {
-            if (DT_DIR != ep->d_type) continue;
-            // Skip hidden files and ., ..
-            if ('.' == ep->d_name[0]) continue;
-            subdirs.push_back(ep->d_name);
-        }
-
-        closedir(dp);
-        return subdirs;
-    }
-
-    protected:
-        void element_activated(const string &str)
-        {
-            auto lst = this->read_dir("/home/nico/" + str);
-            this->load_list(lst);
-        }
-
-    public:
-       Directories_List()
-       {
-           auto lst = this->read_dir("/home/nico");
-           this->load_list(lst);
-       }
-};
-
+#include "gtk_helper/hbox.h"
 
 #include <vector>
+
+
 int main(int argc, char *argv[])
-{
-    gtk_init(&argc, &argv);
-    Gtk_Main_Window wnd;
-
-    Directories_List x;
-    gtk_container_add(GTK_CONTAINER(wnd.window), x);
-
-    gtk_widget_show_all(wnd.window);
-    gtk_main();
-    return 0;
-}
-
-
-
-int main2(int argc, char *argv[])
 {
     vector<string> files = {"img/avestruz3zv.jpg",
                             "img/no.jpg",
@@ -202,19 +144,25 @@ int main2(int argc, char *argv[])
 
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
-    Image_Grid x(wnd);
+    Image_Grid imgs;
+    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img");
 
     for (auto i : files)
     {
         const Image_Cache::Mem_Image *img = cache[i];
-        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(x, img->get_length(), img->get_buf());
+        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(imgs, img->get_length(), img->get_buf());
     }
 
     //Gtk_Simple_Button btn(wnd, "Hello");
     //Gtk_Image img(wnd, "img/vincent.jpg");
     //Gtk_Image_From_PNG_Buff imaag(wnd, img.get_length(), img.get_buf());
-    x.load_images();
+    gtk_widget_set_usize(imgs, 500, 400);
+    Gtk_Helper::Gtk_HBox box(dirs, imgs);
+    gtk_container_add(GTK_CONTAINER(wnd.window), box);
+    imgs.load_images();
+    gtk_widget_show(imgs);
     wnd.show();
+    gtk_widget_show_all(wnd.window);
     
     gtk_main();
     return 0;
