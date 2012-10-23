@@ -17,8 +17,8 @@ static vector<string> get_files(const string &path);
 static vector<string> get_subdirs(const string &path);
 
 
-Path_Handler::Path_Handler(const string &curr_dir)
-        : curr_dir(curr_dir)
+Path_Handler::Path_Handler(const string &curr_dir, Dir_Changed_CB cb)
+        : curr_dir(curr_dir), on_dir_change(cb)
 {
    this->load_list(get_subdirs(curr_dir));
 }
@@ -28,6 +28,17 @@ void Path_Handler::element_activated(const string &cd)
     auto new_dir = change_dir(this->curr_dir, cd);
     this->curr_dir = new_dir;
     this->load_list(get_subdirs(new_dir));
+
+    if (this->on_dir_change)
+    {
+        // TODO: Looks ugly
+        this->on_dir_change(this);
+    }
+}
+
+vector<string> Path_Handler::get_files_on_current_dir() const
+{
+    return get_files(this->curr_dir);
 }
 
 
@@ -64,13 +75,27 @@ static void _read_dir_impl(const string &path, CB callback)
     closedir(dp);
 }
 
+static bool ends_with(const string &fname, const string &ext)
+{
+    if (fname.length() >= ext.length()) {
+        return (0 == fname.compare(fname.length() - ext.length(), ext.length(), ext));
+    } else {
+        return false;
+    }
+}
+
 static vector<string> get_files(const string &path)
 {
     vector<string> files({".."});
 
     auto f = [&files](struct dirent *ep) {
         if (DT_REG != ep->d_type) return;
-        files.push_back(ep->d_name);
+
+        // TODO: Refactor this out
+        string fname = ep->d_name;
+        if (not ends_with(fname, ".jpg") and not ends_with(fname, ".png")) return;
+
+        files.push_back(fname);
     };
 
     _read_dir_impl(path, f);

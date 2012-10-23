@@ -129,6 +129,15 @@ class Image_Grid
 #include <vector>
 
 
+static bool ends_with(const string &fname, const string &ext)
+{
+    if (fname.length() >= ext.length()) {
+        return (0 == fname.compare(fname.length() - ext.length(), ext.length(), ext));
+    } else {
+        return false;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     vector<string> files = {"img/avestruz3zv.jpg",
@@ -145,7 +154,12 @@ int main(int argc, char *argv[])
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
     Image_Grid imgs;
-    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img");
+
+    auto on_dir_change = [](const Path_Handler *path){
+        auto files = path->get_files_on_current_dir();
+        for (auto i : files) cout << i << endl;
+    };
+    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img", on_dir_change);
 
     for (auto i : files)
     {
