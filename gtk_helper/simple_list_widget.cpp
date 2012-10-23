@@ -2,16 +2,9 @@
 using namespace Gtk_Helper;
 
 #include <gtk/gtk.h>
-#include "functions.h"
+#include "general.h"
 
 #include <iostream>
-
-static void cb_row_activated(GtkTreeView*, GtkTreePath *path,
-                             GtkTreeViewColumn*, gpointer self_ptr)
-{
-    Simple_List_Widget *self = static_cast<Simple_List_Widget*>(self_ptr);
-    self->row_activated(path);
-}
 
 
 Simple_List_Widget::Simple_List_Widget()
@@ -22,7 +15,23 @@ Simple_List_Widget::Simple_List_Widget()
     auto renderer = gtk_cell_renderer_text_new();
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view_widget), -1, "Name", renderer, "text", 0, NULL);
     gtk_tree_view_set_model(GTK_TREE_VIEW(view_widget), widget_model);
-    Gtk_Helper::connect(this->view_widget, "row-activated", cb_row_activated, this);
+
+
+    auto on_click_cb = [](
+                GtkTreeView*, GtkTreePath *path,
+                GtkTreeViewColumn*, gpointer self_ptr)
+    {
+        // Just call the proper method on self
+        Simple_List_Widget *self = static_cast<Simple_List_Widget*>(self_ptr);
+        self->row_activated(path);
+    };
+
+    // GTK complains unless we make the cast manually
+    typedef void (*func_ptr)(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
+    func_ptr gtk_friendly_on_click_cb = on_click_cb;
+
+    Gtk_Helper::connect(this->view_widget, "row-activated",
+                            gtk_friendly_on_click_cb, this);
 }
 
 

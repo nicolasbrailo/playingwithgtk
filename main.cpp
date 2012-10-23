@@ -2,7 +2,7 @@
 using namespace std;
 
 
-#include "gtk_helper/functions.h"
+#include "gtk_helper/general.h"
 #include <string>
 
 

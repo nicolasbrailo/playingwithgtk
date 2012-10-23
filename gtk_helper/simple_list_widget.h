@@ -1,7 +1,7 @@
 #ifndef INCL_GTK_HELPER_SIMPLE_LIST_WIDGET_H
 #define INCL_GTK_HELPER_SIMPLE_LIST_WIDGET_H
 
-#include "functions.h"
+#include "general.h"
 
 #include <string>
 #include <vector>
@@ -62,8 +62,7 @@ class Simple_List_Widget : Gtk_Object
          */
         void load_list(const vector<string>& lst);
 
-    public:
-        // TODO: Set private?
+    private:
         void row_activated(GtkTreePath *path);
 };
 

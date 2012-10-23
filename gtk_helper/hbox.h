@@ -2,7 +2,7 @@
 #define INCL_GTK_HELPER_HBOX_H
 
 #include <gtk/gtk.h>
-#include "functions.h"
+#include "general.h"
 
 namespace Gtk_Helper {
 
