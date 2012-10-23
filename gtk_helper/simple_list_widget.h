@@ -1,6 +1,8 @@
 #ifndef INCL_GTK_HELPER_SIMPLE_LIST_WIDGET_H
 #define INCL_GTK_HELPER_SIMPLE_LIST_WIDGET_H
 
+#include "functions.h"
+
 #include <string>
 #include <vector>
 using namespace std;
@@ -24,7 +26,7 @@ namespace Gtk_Helper {
  * events or initializing columns, it's all packed on this simple widget
  * as long as you only need a single (string) column list view.
  **/
-class Simple_List_Widget
+class Simple_List_Widget : Gtk_Object
 {
     GtkListStore *list_store;
     GtkWidget *view_widget;
@@ -36,8 +38,6 @@ class Simple_List_Widget
          * Use load_list to fill it
          */
         Simple_List_Widget();
-
-        Simple_List_Widget(Simple_List_Widget&) = delete;
 
         /**
          * Will free any used GTK resources

@@ -2,6 +2,7 @@
 #define INCL_GTK_HELPER_HBOX_H
 
 #include <gtk/gtk.h>
+#include "functions.h"
 
 namespace Gtk_Helper {
 
@@ -9,7 +10,7 @@ namespace Gtk_Helper {
  * A wrapper for a GTK HBox with a variadic constructor, so we can quickly
  * and easily build a box with as many elements as we need
  */
-class Gtk_HBox
+class Gtk_HBox : Gtk_Object
 {
     static const bool HOMOGENEOUS = false;
     static const unsigned SPACING = 2;
@@ -35,8 +36,6 @@ class Gtk_HBox
         {
             unpack(widgets...);
         }
-
-        Gtk_HBox(Gtk_HBox&) = delete;
 
     private:
         GtkWidget *widget;
