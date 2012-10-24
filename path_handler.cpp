@@ -13,7 +13,7 @@ using std::endl;
 
 // Some helper functions
 static string change_dir(const string &start_path, const string &cd);
-static vector<string> get_files(const string &path);
+static vector<string> get_files(const string &path, const vector<string> extensions);
 static vector<string> get_subdirs(const string &path);
 
 
@@ -36,9 +36,9 @@ void Path_Handler::element_activated(const string &cd)
     }
 }
 
-vector<string> Path_Handler::get_files_on_current_dir() const
+vector<string> Path_Handler::get_files_on_current_dir(const vector<string> extensions) const
 {
-    return get_files(this->curr_dir);
+    return get_files(this->curr_dir, extensions);
 }
 
 
@@ -84,18 +84,24 @@ static bool ends_with(const string &fname, const string &ext)
     }
 }
 
-static vector<string> get_files(const string &path)
+static vector<string> get_files(const string &path, const vector<string> extensions)
 {
     vector<string> files({".."});
 
-    auto f = [&files](struct dirent *ep) {
+    auto f = [&files, &extensions](struct dirent *ep) {
         if (DT_REG != ep->d_type) return;
 
         // TODO: Refactor this out
         string fname = ep->d_name;
-        if (not ends_with(fname, ".jpg") and not ends_with(fname, ".png")) return;
 
-        files.push_back(fname);
+        for (auto i : extensions)
+        {
+            if (ends_with(fname, i))
+            {
+                files.push_back(fname);
+                break;
+            }
+        }
     };
 
     _read_dir_impl(path, f);

@@ -129,15 +129,6 @@ class Image_Grid
 #include <vector>
 
 
-static bool ends_with(const string &fname, const string &ext)
-{
-    if (fname.length() >= ext.length()) {
-        return (0 == fname.compare(fname.length() - ext.length(), ext.length(), ext));
-    } else {
-        return false;
-    }
-}
-
 int main(int argc, char *argv[])
 {
     vector<string> files = {"img/avestruz3zv.jpg",
@@ -156,7 +147,7 @@ int main(int argc, char *argv[])
     Image_Grid imgs;
 
     auto on_dir_change = [](const Path_Handler *path){
-        auto files = path->get_files_on_current_dir();
+        auto files = path->get_files_on_current_dir({"jpg", "png"});
         for (auto i : files) cout << i << endl;
     };
     Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img", on_dir_change);

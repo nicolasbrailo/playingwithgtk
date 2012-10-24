@@ -14,7 +14,7 @@ class Path_Handler: public Gtk_Helper::Simple_List_Widget
 
         Path_Handler(const std::string &curr_dir, Dir_Changed_CB cb = NULL);
         
-        vector<string> get_files_on_current_dir() const;
+        vector<string> get_files_on_current_dir(const vector<string> extensions) const;
 
     private:
        std::string curr_dir;
