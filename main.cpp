@@ -116,9 +116,10 @@ class Gtk_Image_Grid
 };
 
 
+template <class UI_Image>
 class Image_Grid : public Gtk_Image_Grid
 {
-    vector<GtkWidget*> images;
+    vector<UI_Image*> images;
 
     unsigned get_row_px_spacing() const { return 5; }
     unsigned get_thumb_px_width() const { return 150; }
@@ -128,13 +129,24 @@ class Image_Grid : public Gtk_Image_Grid
     }
 
     public:
-
-    void add_widget(GtkWidget *img)
+    void add_widget(const Image_Cache::Mem_Image *img)
     {
-        this->images.push_back(img);
+        // TODO: should just forward Image_Cache::Mem_Image?
+        this->images.push_back(
+                new UI_Image(img->get_length(), img->get_buf())
+        );
     }
 
-    void load_images()
+    void clear()
+    {
+        for (auto i : images)
+        {
+            gtk_widget_destroy(GTK_WIDGET(i->get_raw_ui_ptr()));
+            delete i;
+        }
+    }
+
+    void show()
     {
         unsigned cnt_imgs = images.size();
         for (unsigned i=0; i < cnt_imgs; ++i)
@@ -152,7 +164,7 @@ class Image_Grid : public Gtk_Image_Grid
             const unsigned horiz_pos_px = horiz_pos * thumb_cell_px_width;
             const unsigned vert_pos_px = vert_pos * thumb_cell_px_height;
 
-            this->place_image(images[i], 
+            this->place_image(images[i]->get_raw_ui_ptr(),
                             this->get_thumb_px_width(), this->get_thumb_px_height(),
                             horiz_pos_px, vert_pos_px);
         }
@@ -179,23 +191,34 @@ int main(int argc, char *argv[])
                             "img/vincent4.jpg",
                             "img/vincent.jpg"};
 
-    Magick_Thumbnail_Cache cache("150");
-
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
-    Image_Grid imgs;
 
-    auto on_dir_change = [](const Path_Handler *path){
-        auto files = path->get_files_on_current_dir({"jpg", "png"});
-        for (auto i : files) cout << i << endl;
-    };
-    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img", on_dir_change);
+    Magick_Thumbnail_Cache cache("150");
+    Image_Grid<Magick_Thumbnail_Cache::UI_Image_Impl> imgs;
+
+    struct Foo : public Path_Handler::Dir_Changed_CB
+    {
+        Image_Grid<Magick_Thumbnail_Cache::UI_Image_Impl> *imgs;
+        Magick_Thumbnail_Cache *cache;
+
+        Foo(Image_Grid<Magick_Thumbnail_Cache::UI_Image_Impl> *imgs, Magick_Thumbnail_Cache *cache)
+            : imgs(imgs), cache(cache)
+        {}
+
+        void on_dir_changed(const Path_Handler *path) const
+        {
+            auto files = path->get_files_on_current_dir({"jpg", "png"});
+            for (auto i : files) cout << i << endl;
+        }
+    } foo(&imgs, &cache);
+
+    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img", &foo);
 
     for (auto i : files)
     {
         const Image_Cache::Mem_Image *img = cache[i];
-        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(img->get_length(), img->get_buf());
-        imgs.add_widget(ui_img);
+        imgs.add_widget(img);
     }
 
     //Gtk_Simple_Button btn(wnd, "Hello");
@@ -205,7 +228,7 @@ int main(int argc, char *argv[])
     Gtk_Helper::Gtk_HBox box(dirs, imgs);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
     gtk_widget_show(imgs);
-    imgs.load_images();
+    imgs.show();
     wnd.show();
 
     gtk_main();

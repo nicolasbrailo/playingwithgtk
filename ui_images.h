@@ -9,6 +9,7 @@ class Gtk_UI_Image : Gtk_Helper::Gtk_Object
     protected:
         GtkWidget *img;
     public:
+        GtkWidget* get_raw_ui_ptr() { return this->img; }
         operator GtkWidget* () { return this->img; }
         Gtk_UI_Image() {}
 };

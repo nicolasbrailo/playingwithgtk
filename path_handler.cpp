@@ -17,8 +17,8 @@ static vector<string> get_files(const string &path, const vector<string> extensi
 static vector<string> get_subdirs(const string &path);
 
 
-Path_Handler::Path_Handler(const string &curr_dir, Dir_Changed_CB cb)
-        : curr_dir(curr_dir), on_dir_change(cb)
+Path_Handler::Path_Handler(const string &curr_dir, const Dir_Changed_CB *cb)
+        : curr_dir(curr_dir), callback(cb)
 {
    this->load_list(get_subdirs(curr_dir));
 }
@@ -29,10 +29,10 @@ void Path_Handler::element_activated(const string &cd)
     this->curr_dir = new_dir;
     this->load_list(get_subdirs(new_dir));
 
-    if (this->on_dir_change)
+    if (this->callback)
     {
-        // TODO: Looks ugly
-        this->on_dir_change(this);
+        // TODO: looks ugly
+        this->callback->on_dir_changed(this);
     }
 }
 
