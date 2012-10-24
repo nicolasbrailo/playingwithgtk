@@ -10,6 +10,8 @@ using std::string;
 using std::map;
 
 
+// TODO: Configure resize size
+
 class Image_Cache
 {
     public:

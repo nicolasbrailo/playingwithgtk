@@ -15,7 +15,6 @@ class Gtk_Main_Window
 {
     public:
     GtkWidget *window;
-    vector<GtkWidget*> children_widgets;
 
     public:
     Gtk_Main_Window() :
@@ -23,25 +22,27 @@ class Gtk_Main_Window
     {
         // Set style
         gtk_container_set_border_width(GTK_CONTAINER(window), 10);
-        gtk_widget_set_usize(window, 800, 600);
+        gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
+        gtk_window_set_resizable(GTK_WINDOW(window), true);
 
         // Attach callbacks
         Gtk_Helper::connect(window, "delete-event", Gtk_Main_Window::close_window);
         Gtk_Helper::connect(window, "destroy", Gtk_Main_Window::quit);
     }
 
+    // void get_size() {
+    //     int width, height;
+    //     gtk_window_get_size(GTK_WINDOW(window), &width, &height)
+    // }
+
     void show()
     {
-        for (auto i = children_widgets.begin(); i != children_widgets.end(); ++i)
-            gtk_widget_show(*i);
-
-        gtk_widget_show(this->window);
+        gtk_widget_show_all(this->window);
     }
 
     template <class T>
     void add_widget(T widget)
     {
-        children_widgets.push_back(widget);
         gtk_container_add(GTK_CONTAINER(this->window), widget);
     }
 
@@ -84,18 +85,37 @@ class Gtk_Simple_Button
 
 
 #include "image_cache.h"
-class Image_Grid
+class Gtk_Image_Grid
 {
-    GtkWidget *grid;
-    vector<GtkWidget*> images;
+    GtkWidget *widget;
 
     public:
-    operator GtkWidget* (){ return this->grid; }
+        Gtk_Image_Grid()
+                : widget(gtk_layout_new(NULL, NULL))
+        {}
 
-    Image_Grid()
-    {
-        grid = gtk_layout_new(NULL, NULL);
+        operator GtkWidget* (){ return this->widget; }
+
+        unsigned get_width() const
+        {
+            int width, height;
+            gtk_widget_get_size_request(this->widget, &width, &height);
+            return width;
+        }
+};
+
+
+class Image_Grid : public Gtk_Image_Grid
+{
+    vector<GtkWidget*> images;
+
+    unsigned get_thumb_px_width() const { return 150; }
+    unsigned get_row_px_height() const { return 150; }
+    unsigned get_cols_per_row() const {
+        return this->get_thumb_px_width() / this->get_width();
     }
+
+    public:
 
     void add_widget(GtkWidget *img)
     {
@@ -104,6 +124,7 @@ class Image_Grid
 
     void load_images()
     {
+        cout << get_cols_per_row() << endl;
         const unsigned COLS_PER_ROW = 4;
         const unsigned X_SIZE = 140;
         const unsigned Y_SIZE = 140;
@@ -114,7 +135,8 @@ class Image_Grid
             int y = i / COLS_PER_ROW;
             GtkWidget *img = images[i];
             gtk_widget_set_usize(img, X_SIZE, Y_SIZE);
-            gtk_layout_put((GtkLayout*)this->grid, img, (X_SIZE+10) * x, (Y_SIZE+10) * y);
+            GtkWidget *self = *this;
+            gtk_layout_put(GTK_LAYOUT(self), img, (X_SIZE+10) * x, (Y_SIZE+10) * y);
             gtk_widget_show(img);
         }
     }
@@ -165,10 +187,9 @@ int main(int argc, char *argv[])
     gtk_widget_set_usize(imgs, 500, 400);
     Gtk_Helper::Gtk_HBox box(dirs, imgs);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
-    imgs.load_images();
     gtk_widget_show(imgs);
     wnd.show();
-    gtk_widget_show_all(wnd.window);
+    imgs.load_images();
 
     gtk_main();
     return 0;
