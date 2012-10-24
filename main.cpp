@@ -155,7 +155,8 @@ int main(int argc, char *argv[])
     for (auto i : files)
     {
         const Image_Cache::Mem_Image *img = cache[i];
-        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(imgs, img->get_length(), img->get_buf());
+        Magick_Thumbnail_Cache::UI_Image_Impl ui_img(img->get_length(), img->get_buf());
+        imgs.add_widget(ui_img);
     }
 
     //Gtk_Simple_Button btn(wnd, "Hello");
