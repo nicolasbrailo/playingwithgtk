@@ -96,11 +96,22 @@ class Gtk_Image_Grid
 
         operator GtkWidget* (){ return this->widget; }
 
+
+    protected:
         unsigned get_width() const
         {
             int width, height;
             gtk_widget_get_size_request(this->widget, &width, &height);
             return width;
+        }
+
+        template <class T>
+        void place_image(T *img, unsigned img_width, unsigned img_height,
+                         unsigned horiz_pos_px, unsigned vert_pos_px)
+        {
+            gtk_widget_set_usize(img, img_width, img_height);
+            gtk_layout_put(GTK_LAYOUT(this->widget), img, horiz_pos_px, vert_pos_px);
+            gtk_widget_show(img);
         }
 };
 
@@ -109,10 +120,11 @@ class Image_Grid : public Gtk_Image_Grid
 {
     vector<GtkWidget*> images;
 
+    unsigned get_row_px_spacing() const { return 5; }
     unsigned get_thumb_px_width() const { return 150; }
-    unsigned get_row_px_height() const { return 150; }
+    unsigned get_thumb_px_height() const { return 150; }
     unsigned get_cols_per_row() const {
-        return this->get_thumb_px_width() / this->get_width();
+        return this->get_width() / this->get_thumb_px_width();
     }
 
     public:
@@ -124,20 +136,25 @@ class Image_Grid : public Gtk_Image_Grid
 
     void load_images()
     {
-        cout << get_cols_per_row() << endl;
-        const unsigned COLS_PER_ROW = 4;
-        const unsigned X_SIZE = 140;
-        const unsigned Y_SIZE = 140;
-
-        for (unsigned i=0; i < images.size(); ++i)
+        unsigned cnt_imgs = images.size();
+        for (unsigned i=0; i < cnt_imgs; ++i)
         {
-            int x = i % COLS_PER_ROW;
-            int y = i / COLS_PER_ROW;
-            GtkWidget *img = images[i];
-            gtk_widget_set_usize(img, X_SIZE, Y_SIZE);
-            GtkWidget *self = *this;
-            gtk_layout_put(GTK_LAYOUT(self), img, (X_SIZE+10) * x, (Y_SIZE+10) * y);
-            gtk_widget_show(img);
+            // Meassure of the cell containing a thumb
+            const unsigned thumb_cell_px_width = get_thumb_px_width() + get_row_px_spacing();
+            const unsigned thumb_cell_px_height = get_thumb_px_height() + get_row_px_spacing();
+
+            // (x,y) position of the image, where the position is the number
+            // of the cell it occupies (imagine an excel spreadsheet)
+            const unsigned horiz_pos = i % this->get_cols_per_row();
+            const unsigned vert_pos = i / this->get_cols_per_row();
+
+            // Converting the (x,y) position to (x,y) pixel position
+            const unsigned horiz_pos_px = horiz_pos * thumb_cell_px_width;
+            const unsigned vert_pos_px = vert_pos * thumb_cell_px_height;
+
+            this->place_image(images[i], 
+                            this->get_thumb_px_width(), this->get_thumb_px_height(),
+                            horiz_pos_px, vert_pos_px);
         }
     }
 };
@@ -188,8 +205,8 @@ int main(int argc, char *argv[])
     Gtk_Helper::Gtk_HBox box(dirs, imgs);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
     gtk_widget_show(imgs);
-    wnd.show();
     imgs.load_images();
+    wnd.show();
 
     gtk_main();
     return 0;
