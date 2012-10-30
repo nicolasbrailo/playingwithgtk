@@ -11,16 +11,17 @@ class Path_Handler: public Gtk_Helper::Simple_List_Widget
 
     public:
         struct Dir_Changed_CB {
-            virtual void on_dir_changed(const Path_Handler *path) const = 0;
+            virtual void on_dir_changed(const Path_Handler *path) = 0;
         };
 
-        Path_Handler(const std::string &curr_dir, const Dir_Changed_CB *cb = NULL);
+        Path_Handler(const std::string &curr_dir, Dir_Changed_CB *cb = NULL);
         
+        const string& get_current_path() const { return this->curr_dir; }
         vector<string> get_files_on_current_dir(const vector<string> extensions) const;
 
     private:
        std::string curr_dir;
-       const Dir_Changed_CB *callback;
+       Dir_Changed_CB *callback;
 };
 
 

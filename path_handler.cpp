@@ -17,7 +17,7 @@ static vector<string> get_files(const string &path, const vector<string> extensi
 static vector<string> get_subdirs(const string &path);
 
 
-Path_Handler::Path_Handler(const string &curr_dir, const Dir_Changed_CB *cb)
+Path_Handler::Path_Handler(const string &curr_dir, Dir_Changed_CB *cb)
         : curr_dir(curr_dir), callback(cb)
 {
    this->load_list(get_subdirs(curr_dir));
@@ -86,7 +86,7 @@ static bool ends_with(const string &fname, const string &ext)
 
 static vector<string> get_files(const string &path, const vector<string> extensions)
 {
-    vector<string> files({".."});
+    vector<string> files;
 
     auto f = [&files, &extensions](struct dirent *ep) {
         if (DT_REG != ep->d_type) return;

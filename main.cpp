@@ -144,6 +144,8 @@ class Image_Grid : public Gtk_Image_Grid
             gtk_widget_destroy(GTK_WIDGET(i->get_raw_ui_ptr()));
             delete i;
         }
+
+        images.clear();
     }
 
     void show()
@@ -206,10 +208,22 @@ int main(int argc, char *argv[])
             : imgs(imgs), cache(cache)
         {}
 
-        void on_dir_changed(const Path_Handler *path) const
+        void on_dir_changed(const Path_Handler *path)
         {
+            imgs->clear();
+
             auto files = path->get_files_on_current_dir({"jpg", "png"});
-            for (auto i : files) cout << i << endl;
+            auto cwd = path->get_current_path();
+            for (auto i : files)
+            {
+                Magick_Thumbnail_Cache &rcache = *cache;
+                auto img_abs_path = cwd + '/' + i;
+                // TODO: Render unrendereable imgs with a broken icon
+                const Image_Cache::Mem_Image *img = rcache[img_abs_path];
+                imgs->add_widget(img);
+            }
+
+            imgs->show();
         }
     } foo(&imgs, &cache);
 
