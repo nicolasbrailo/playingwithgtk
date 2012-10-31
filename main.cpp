@@ -85,39 +85,10 @@ class Gtk_Simple_Button
 
 
 #include "image_cache.h"
-class Gtk_Image_Grid
-{
-    GtkWidget *widget;
-
-    public:
-        Gtk_Image_Grid()
-                : widget(gtk_layout_new(NULL, NULL))
-        {}
-
-        operator GtkWidget* (){ return this->widget; }
-
-
-    protected:
-        unsigned get_width() const
-        {
-            int width, height;
-            gtk_widget_get_size_request(this->widget, &width, &height);
-            return width;
-        }
-
-        template <class T>
-        void place_image(T *img, unsigned img_width, unsigned img_height,
-                         unsigned horiz_pos_px, unsigned vert_pos_px)
-        {
-            gtk_widget_set_usize(img, img_width, img_height);
-            gtk_layout_put(GTK_LAYOUT(this->widget), img, horiz_pos_px, vert_pos_px);
-            gtk_widget_show(img);
-        }
-};
-
+#include "gtk_helper/image_grid.h"
 
 template <class UI_Image>
-class Image_Grid : public Gtk_Image_Grid
+class Image_Grid : public Gtk_Helper::Image_Grid
 {
     vector<UI_Image*> images;
 
