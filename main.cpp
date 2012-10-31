@@ -112,7 +112,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid
     {
         for (auto i : images)
         {
-            gtk_widget_destroy(GTK_WIDGET(i->get_raw_ui_ptr()));
+            this->remove_image(i->get_raw_ui_ptr());
             delete i;
         }
 

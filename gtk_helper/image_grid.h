@@ -34,6 +34,12 @@ class Image_Grid : Gtk_Object
             gtk_layout_put(GTK_LAYOUT(this->widget), img, horiz_pos_px, vert_pos_px);
             gtk_widget_show(img);
         }
+
+        template <class T>
+        void remove_image(T *img)
+        {
+            gtk_widget_destroy(GTK_WIDGET(img));
+        }
 };
 
 } /* namespace Gtk_Helper */
