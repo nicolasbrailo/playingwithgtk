@@ -13,7 +13,7 @@ all: app
 app: $(OBJ_FILES)
 	g++ $(OBJ_FILES) -o app $(GTK_LD) $(MAGICPP_LD)
 
-.PHONY: clean run
+.PHONY: clean run ctags
 
 run: app
 	./app
@@ -21,4 +21,6 @@ run: app
 clean:
 	rm -f $(OBJ_FILES)
 
+ctags:
+	ctags -R -o ./ctags .
 
