@@ -41,7 +41,7 @@ run: app
 	./app
 
 clean:
-	rm -f $(OBJ_FILES)
+	rm -f $(OBJ_FILES) $(DEPS_FILE)
 
 ctags:
 	ctags -R -o ./ctags .

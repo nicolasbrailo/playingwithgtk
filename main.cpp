@@ -58,30 +58,6 @@ class Gtk_Main_Window
 };
 
 
-#include <string>
-using std::string;
-class Gtk_Simple_Button
-{
-    public:
-    GtkWidget *button;
-    Gtk_Main_Window &parent;
-
-    public:
-    Gtk_Simple_Button(Gtk_Main_Window &wnd, const string &lbl) :
-            button(gtk_button_new_with_label(lbl.c_str())),
-            parent(wnd)
-    {
-        Gtk_Helper::connect(button, "clicked", Gtk_Simple_Button::clicked, this);
-        wnd.add_widget(button);
-    }
-
-    private:
-    static void clicked(GtkWidget* w, gpointer self)
-    {
-        g_print("Hello world\n");
-        ((Gtk_Simple_Button*)self)->parent.quit(w, NULL);
-    }
-};
 
 
 #include "image_cache.h"
@@ -146,6 +122,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid
 
 
 
+#include "gtk_helper/button.h"
 #include "path_handler.h"
 
 #include "gtk_helper/hbox.h"
@@ -210,7 +187,10 @@ int main(int argc, char *argv[])
     //Gtk_Image img(wnd, "img/vincent.jpg");
     //Gtk_Image_From_PNG_Buff imaag(wnd, img.get_length(), img.get_buf());
     gtk_widget_set_usize(imgs, 500, 400);
-    Gtk_Helper::Gtk_HBox box(dirs, imgs);
+
+    Gtk_Helper::Button btn("Hola");
+
+    Gtk_Helper::Gtk_HBox box(dirs, imgs, btn);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
     gtk_widget_show(imgs);
     imgs.show();
