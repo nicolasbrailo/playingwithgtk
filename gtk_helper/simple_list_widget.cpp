@@ -30,7 +30,8 @@ Simple_List_Widget::Simple_List_Widget()
     typedef void (*func_ptr)(GtkTreeView*, GtkTreePath*, GtkTreeViewColumn*, gpointer);
     func_ptr gtk_friendly_on_click_cb = on_click_cb;
 
-    Gtk_Helper::connect(this->view_widget, "row-activated",
+    // We can't use the standard connect because the param order is different
+    Gtk_Helper::connect2(this->view_widget, "row-activated",
                             gtk_friendly_on_click_cb, this);
 }
 

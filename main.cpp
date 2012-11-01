@@ -7,11 +7,15 @@ using namespace std;
 
 
 #include "ui_images.h"
+#include "gtk_helper/general.h"
 
 #include <gtk/gtk.h>
 #include <vector>
 using std::vector;
-class Gtk_Main_Window
+
+
+
+class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 {
     public:
     GtkWidget *window;
@@ -26,14 +30,12 @@ class Gtk_Main_Window
         gtk_window_set_resizable(GTK_WINDOW(window), true);
 
         // Attach callbacks
-        Gtk_Helper::connect(window, "delete-event", Gtk_Main_Window::close_window);
-        Gtk_Helper::connect(window, "destroy", Gtk_Main_Window::quit);
+        Gtk_Helper::connect("delete-event", this, &Gtk_Main_Window::close_window);
+        Gtk_Helper::connect("destroy", this, &Gtk_Main_Window::quit);
+        Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
     }
 
-    // void get_size() {
-    //     int width, height;
-    //     gtk_window_get_size(GTK_WINDOW(window), &width, &height)
-    // }
+    operator GtkWidget* (){ return this->window; }
 
     void show()
     {
@@ -46,12 +48,21 @@ class Gtk_Main_Window
         gtk_container_add(GTK_CONTAINER(this->window), widget);
     }
 
-    static gboolean close_window(GtkWidget*, GdkEvent*, gpointer)
+    int known_width, known_height;
+    void resize()
     {
+        int width, height;
+        gtk_window_get_size(GTK_WINDOW(this->window), &width, &height);
+        cout << width << "x" << height << endl;
+    }
+
+    gboolean close_window()
+    {
+        // TODO: This will break with the connect wrapper
         return false; // Just close the window (will call quit)
     }
 
-    static void quit(GtkWidget*, gpointer)
+    void quit()
     {
         gtk_main_quit();
     }
@@ -132,15 +143,6 @@ class Image_Grid : public Gtk_Helper::Image_Grid
 
 int main(int argc, char *argv[])
 {
-    vector<string> files = {"img/avestruz3zv.jpg",
-                            "img/no.jpg",
-                            "img/squirrel_overdose.jpg",
-                            "img/trained_monkey.png",
-                            "img/vincent2.jpg",
-                            "img/vincent3.jpg",
-                            "img/vincent4.jpg",
-                            "img/vincent.jpg"};
-
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
 
@@ -175,22 +177,11 @@ int main(int argc, char *argv[])
         }
     } foo(&imgs, &cache);
 
-    Path_Handler dirs("/home/nico/dev/src/playingwithgtk/img", &foo);
+    Path_Handler dirs("/home/nico/dev/src/playingwithgtk", &foo);
 
-    for (auto i : files)
-    {
-        const Image_Cache::Mem_Image *img = cache[i];
-        imgs.add_widget(img);
-    }
 
-    //Gtk_Simple_Button btn(wnd, "Hello");
-    //Gtk_Image img(wnd, "img/vincent.jpg");
-    //Gtk_Image_From_PNG_Buff imaag(wnd, img.get_length(), img.get_buf());
     gtk_widget_set_usize(imgs, 500, 400);
-
-    Gtk_Helper::Button btn("Hola");
-
-    Gtk_Helper::Gtk_HBox box(dirs, imgs, btn);
+    Gtk_Helper::Gtk_HBox box(dirs, imgs);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
     gtk_widget_show(imgs);
     imgs.show();
