@@ -14,7 +14,6 @@ using namespace std;
 using std::vector;
 
 
-
 class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 {
     public:
@@ -22,7 +21,8 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 
     public:
     Gtk_Main_Window() :
-            window(gtk_window_new(GTK_WINDOW_TOPLEVEL))
+            window(gtk_window_new(GTK_WINDOW_TOPLEVEL)),
+            autoresize_obj(NULL)
     {
         // Set style
         gtk_container_set_border_width(GTK_CONTAINER(window), 10);
@@ -32,6 +32,8 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         // Attach callbacks
         Gtk_Helper::connect("delete-event", this, &Gtk_Main_Window::close_window);
         Gtk_Helper::connect("destroy", this, &Gtk_Main_Window::quit);
+
+        // related to return of cb method?
         Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
     }
 
@@ -48,12 +50,21 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         gtk_container_add(GTK_CONTAINER(this->window), widget);
     }
 
-    int known_width, known_height;
+    Gtk_Helper::ResizableContainer *autoresize_obj;
+    void autoresize(Gtk_Helper::ResizableContainer *obj)
+    {
+        this->autoresize_obj = obj;
+    }
+
     void resize()
     {
-        int width, height;
-        gtk_window_get_size(GTK_WINDOW(this->window), &width, &height);
-        cout << width << "x" << height << endl;
+        if (this->autoresize_obj)
+        {
+            int width, height;
+            gtk_window_get_size(GTK_WINDOW(this->window), &width, &height);
+            cout << width << "x" << height << endl;
+            // this->autoresize_obj->set_size(width-20, height-20);
+        }
     }
 
     gboolean close_window()
@@ -182,6 +193,7 @@ int main(int argc, char *argv[])
 
     gtk_widget_set_usize(imgs, 500, 400);
     Gtk_Helper::Gtk_HBox box(dirs, imgs);
+    wnd.autoresize(&box);
     gtk_container_add(GTK_CONTAINER(wnd.window), box);
     gtk_widget_show(imgs);
     imgs.show();

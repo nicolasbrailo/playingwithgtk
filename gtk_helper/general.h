@@ -7,6 +7,28 @@
 namespace Gtk_Helper {
     using std::string;
 
+    class ResizableContainer
+    {
+        ResizableContainer *autoresizable_obj;
+
+        public:
+            ResizableContainer(ResizableContainer *autoresizable_obj=NULL)
+                    : autoresizable_obj(autoresizable_obj)
+            {}
+
+            void set_autoresizable_obj(ResizableContainer *p) { this->autoresizable_obj = p; }
+
+            void resized(int width, int height)
+            {
+                // Resize & then propagate the resize to the child
+                this->set_size(width, height);
+                if (this->autoresizable_obj)
+                    this->autoresizable_obj->resized(width, height);
+            }
+
+            virtual void set_size(int width, int height) = 0;
+    };
+
     template <class Widget, typename CB>
     auto connect2(Widget wdgt, const string &event, CB callback, void* data=NULL)
         -> decltype( g_signal_connect(NULL, NULL, NULL, NULL) )
