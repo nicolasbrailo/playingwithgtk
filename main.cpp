@@ -34,7 +34,7 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         Gtk_Helper::connect("destroy", this, &Gtk_Main_Window::quit);
 
         // related to return of cb method?
-        Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
+        // Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
     }
 
     operator GtkWidget* (){ return this->window; }
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
         }
     } foo(&imgs, &cache);
 
-    Path_Handler dirs("/home/nico/dev/src/playingwithgtk", &foo);
+    Path_Handler dirs(".", &foo);
 
 
     gtk_widget_set_usize(imgs, 500, 400);

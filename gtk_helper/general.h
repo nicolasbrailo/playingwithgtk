@@ -53,11 +53,13 @@ namespace Gtk_Helper {
             Member_Method_Wrapper *cb = static_cast<Member_Method_Wrapper*>(real_cb);
             Listener_Class *self = cb->self;
             Method_Ptr method= cb->method;
-            (self->*method)();
+            return (self->*method)();
         };
 
+        // Get the return type of the callback
+        typedef decltype( (self->*callback)() ) cb_ret_t;
         // Typedef to cast lambdas into GTK-callbacks (the cast isn't automatic)
-        typedef void (*gtk_cb_t)(GtkWidget*, GdkEvent*, void*, void*);
+        typedef cb_ret_t (*gtk_cb_t)(GtkWidget*, GdkEvent*, void*, void*);
         // Explicitly tell the compiler we want this casted as a normal function
         // ptr, otherwise GTK will receive a lambda obect and will complain
         gtk_cb_t gtk_cb = f;

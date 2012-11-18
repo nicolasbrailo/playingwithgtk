@@ -1,5 +1,6 @@
 #include "path_handler.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -64,7 +65,17 @@ static void _read_dir_impl(const string &path, CB callback)
     auto dp = opendir(path.c_str());
     if (dp == NULL)
     {
-        cerr << "Error reading " << path << endl;
+        cerr << "Error reading " << path << ": ";
+        switch(errno) {
+            case EACCES: cout << "Permission denied."; break;
+            case EBADF : cout << "fd is not a valid file descriptor opened for reading."; break;
+            case EMFILE: cout << "Too many file descriptors in use by process."; break;
+            case ENFILE: cout << "Too many files are currently open in the system."; break;
+            case ENOENT: cout << "Directory does not exist, or name is an empty string."; break;
+            case ENOMEM: cout << "Insufficient memory to complete the operation."; break;
+        }
+        cerr << endl;
+
         return;
     }
 
