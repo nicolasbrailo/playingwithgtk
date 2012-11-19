@@ -31,10 +31,10 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 
         // Attach callbacks
         Gtk_Helper::connect("delete-event", this, &Gtk_Main_Window::close_window);
-        Gtk_Helper::connect("destroy", this, &Gtk_Main_Window::quit);
+        Gtk_Helper::connect3("destroy", this, &Gtk_Main_Window::quit);
 
         // related to return of cb method?
-        // Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
+        Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
     }
 
     operator GtkWidget* (){ return this->window; }
@@ -67,9 +67,8 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         }
     }
 
-    gboolean close_window()
+    bool close_window()
     {
-        // TODO: This will break with the connect wrapper
         return false; // Just close the window (will call quit)
     }
 

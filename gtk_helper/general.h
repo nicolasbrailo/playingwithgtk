@@ -4,6 +4,8 @@
 #include <gtk/gtk.h>
 #include <string>
 
+#include <iostream>
+
 namespace Gtk_Helper {
     using std::string;
 
@@ -90,6 +92,34 @@ namespace Gtk_Helper {
         auto real_cb = new Member_Method_Wrapper(self, callback);
 
         // Connect the event
+        g_signal_connect(widget_ptr, event.c_str(), G_CALLBACK(gtk_cb), real_cb);
+    }
+
+
+    // Copy of connect for gtk-cbs that only receive 2 params
+    // TODO cleanup
+    template <class Listener_Class, class Method_Ptr>
+    void connect3(const string &event, Listener_Class *self, Method_Ptr callback)
+    {
+        struct Member_Method_Wrapper {
+            Listener_Class *self;
+            Method_Ptr method;
+            Member_Method_Wrapper(Listener_Class *self, Method_Ptr method)
+                : self(self), method(method) {}
+        };
+
+        typedef decltype( (self->*callback)() ) cb_ret_t;
+
+        auto f = [](GtkWidget*, void *real_cb) -> cb_ret_t {
+            Member_Method_Wrapper *cb = static_cast<Member_Method_Wrapper*>(real_cb);
+            Listener_Class *self = cb->self;
+            Method_Ptr method= cb->method;
+            return (self->*method)();
+        };
+        typedef cb_ret_t (*gtk_cb_t)(GtkWidget*, void*);
+        gtk_cb_t gtk_cb = f;
+        GtkWidget* widget_ptr = (*self);
+        auto real_cb = new Member_Method_Wrapper(self, callback);
         g_signal_connect(widget_ptr, event.c_str(), G_CALLBACK(gtk_cb), real_cb);
     }
 
