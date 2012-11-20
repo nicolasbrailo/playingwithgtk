@@ -10,7 +10,7 @@ namespace Gtk_Helper {
  * A wrapper for a GTK HBox with a variadic constructor, so we can quickly
  * and easily build a box with as many elements as we need
  */
-class Gtk_HBox : Gtk_Object, public ResizableContainer
+class Gtk_HBox : Gtk_Object
 {
     static const bool HOMOGENEOUS = false;
     static const unsigned SPACING = 2;
@@ -19,7 +19,7 @@ class Gtk_HBox : Gtk_Object, public ResizableContainer
     void unpack(Head &elm, Tail&... rest...)
     {
         /* gboolean expand, gboolean fill, guint padding */
-        gtk_box_pack_start(GTK_BOX(this->widget), elm, false, false, 0);
+        gtk_box_pack_start(GTK_BOX(this->widget), elm, true, true, 10);
 
         unpack(rest...);
     }
@@ -35,11 +35,6 @@ class Gtk_HBox : Gtk_Object, public ResizableContainer
                 : widget(gtk_hbox_new(HOMOGENEOUS, SPACING))
         {
             unpack(widgets...);
-        }
-
-        void set_size(int width, int height)
-        {
-            gtk_widget_set_usize(this->widget, width, height);
         }
 
     private:

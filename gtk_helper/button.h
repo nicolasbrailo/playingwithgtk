@@ -23,7 +23,6 @@ class Button : Gtk_Object
             Gtk_Helper::connect3("clicked", this, &Button::clicked);
         }
 
-        //virtual void clicked() = 0;
         void clicked(){
             std::cout << "HOLA" << std::endl;
         }

@@ -4,8 +4,6 @@
 #include <gtk/gtk.h>
 #include <string>
 
-#include <iostream>
-
 namespace Gtk_Helper {
     using std::string;
 
@@ -20,15 +18,15 @@ namespace Gtk_Helper {
 
             void set_autoresizable_obj(ResizableContainer *p) { this->autoresizable_obj = p; }
 
-            void resized(int width, int height)
+            virtual void resize(int width, int height)
             {
                 // Resize & then propagate the resize to the child
                 this->set_size(width, height);
                 if (this->autoresizable_obj)
-                    this->autoresizable_obj->resized(width, height);
+                    this->autoresizable_obj->resize(width, height);
             }
 
-            virtual void set_size(int width, int height) = 0;
+            virtual void set_size(int, int) {}
     };
 
 
