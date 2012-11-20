@@ -20,7 +20,7 @@ class Button : Gtk_Object
         Button(const string &lbl) :
                 widget(gtk_button_new_with_label(lbl.c_str()))
         {
-            Gtk_Helper::connect("clicked", this, &Button::clicked);
+            Gtk_Helper::connect3("clicked", this, &Button::clicked);
         }
 
         //virtual void clicked() = 0;

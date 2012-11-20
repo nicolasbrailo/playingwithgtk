@@ -31,8 +31,32 @@ namespace Gtk_Helper {
             virtual void set_size(int width, int height) = 0;
     };
 
+
+    /**
+     * A Member_Method_Wrapper to hide the complexities of the ->* operator
+     */
+    template <class Self, class Method_Ptr>
+    struct Member_Method_Wrapper {
+        Self *self;
+        Method_Ptr method;
+        typedef decltype( (self->*method)() ) cb_return_t;
+
+        Member_Method_Wrapper(Self *self, Method_Ptr method)
+            : self(self), method(method) {}
+
+        cb_return_t operator() (){ return (self->*method)(); }
+
+        static cb_return_t run(void *ptr)
+        {
+            Member_Method_Wrapper *cbp = static_cast<Member_Method_Wrapper*>(ptr);
+            Member_Method_Wrapper &cb = *cbp;
+            return cb();
+        }
+    };
+
+
     template <class Widget, typename CB>
-    auto connect2(Widget wdgt, const string &event, CB callback, void* data=NULL)
+    auto connect_raw(Widget wdgt, const string &event, CB callback, void* data=NULL)
         -> decltype( g_signal_connect(NULL, NULL, NULL, NULL) )
     {
         return g_signal_connect(wdgt, event.c_str(), G_CALLBACK(callback), data);
@@ -40,29 +64,19 @@ namespace Gtk_Helper {
 
 
     template <class Listener_Class, class Method_Ptr>
-    void connect(const string &event, Listener_Class *self, Method_Ptr callback)
+    void connect3(const string &event, Listener_Class *self, Method_Ptr callback)
     {
-        struct Member_Method_Wrapper {
-            Listener_Class *self;
-            Method_Ptr method;
-            Member_Method_Wrapper(Listener_Class *self, Method_Ptr method)
-                : self(self), method(method) {}
-        };
-
-        // Get the return type of the callback
-        typedef decltype( (self->*callback)() ) cb_ret_t;
+        typedef Member_Method_Wrapper<Listener_Class, Method_Ptr> CB_Wrapper;
+        typedef typename CB_Wrapper::cb_return_t cb_ret_t;
+        // Typedef to cast lambdas into GTK-callbacks (the cast isn't automatic)
+        typedef cb_ret_t (*gtk_cb_t)(GtkWidget*, GdkEvent*, void*, void*);
 
         // A thin lambda-callback to "cast" and resend the event received
         // to the real object connected to it
         auto f = [](GtkWidget*, GdkEvent*, void *real_cb, void*) -> cb_ret_t {
-            Member_Method_Wrapper *cb = static_cast<Member_Method_Wrapper*>(real_cb);
-            Listener_Class *self = cb->self;
-            Method_Ptr method= cb->method;
-            return (self->*method)();
+            return CB_Wrapper::run(real_cb);
         };
 
-        // Typedef to cast lambdas into GTK-callbacks (the cast isn't automatic)
-        typedef cb_ret_t (*gtk_cb_t)(GtkWidget*, GdkEvent*, void*, void*);
         // Explicitly tell the compiler we want this casted as a normal function
         // ptr, otherwise GTK will receive a lambda obect and will complain
         gtk_cb_t gtk_cb = f;
@@ -89,37 +103,27 @@ namespace Gtk_Helper {
         // program because we assume the events will never be disconnected; a
         // callback manager object would be needed if signals like these are
         // ever disconnected.
-        auto real_cb = new Member_Method_Wrapper(self, callback);
+        auto real_cb = new CB_Wrapper(self, callback);
 
         // Connect the event
         g_signal_connect(widget_ptr, event.c_str(), G_CALLBACK(gtk_cb), real_cb);
     }
 
-
     // Copy of connect for gtk-cbs that only receive 2 params
-    // TODO cleanup
     template <class Listener_Class, class Method_Ptr>
-    void connect3(const string &event, Listener_Class *self, Method_Ptr callback)
+    void connect2(const string &event, Listener_Class *self, Method_Ptr callback)
     {
-        struct Member_Method_Wrapper {
-            Listener_Class *self;
-            Method_Ptr method;
-            Member_Method_Wrapper(Listener_Class *self, Method_Ptr method)
-                : self(self), method(method) {}
-        };
-
-        typedef decltype( (self->*callback)() ) cb_ret_t;
+        typedef Member_Method_Wrapper<Listener_Class, Method_Ptr> CB_Wrapper;
+        typedef typename CB_Wrapper::cb_return_t cb_ret_t;
+        typedef cb_ret_t (*gtk_function_ptr_t)(GtkWidget*, void*);
 
         auto f = [](GtkWidget*, void *real_cb) -> cb_ret_t {
-            Member_Method_Wrapper *cb = static_cast<Member_Method_Wrapper*>(real_cb);
-            Listener_Class *self = cb->self;
-            Method_Ptr method= cb->method;
-            return (self->*method)();
+            return CB_Wrapper::run(real_cb);
         };
-        typedef cb_ret_t (*gtk_cb_t)(GtkWidget*, void*);
-        gtk_cb_t gtk_cb = f;
+
+        gtk_function_ptr_t gtk_cb = f;
         GtkWidget* widget_ptr = (*self);
-        auto real_cb = new Member_Method_Wrapper(self, callback);
+        auto real_cb = new CB_Wrapper(self, callback);
         g_signal_connect(widget_ptr, event.c_str(), G_CALLBACK(gtk_cb), real_cb);
     }
 

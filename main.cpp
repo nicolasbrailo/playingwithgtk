@@ -30,11 +30,11 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         gtk_window_set_resizable(GTK_WINDOW(window), true);
 
         // Attach callbacks
-        Gtk_Helper::connect("delete-event", this, &Gtk_Main_Window::close_window);
-        Gtk_Helper::connect3("destroy", this, &Gtk_Main_Window::quit);
+        Gtk_Helper::connect3("delete-event", this, &Gtk_Main_Window::close_window);
+        Gtk_Helper::connect2("destroy", this, &Gtk_Main_Window::quit);
 
         // related to return of cb method?
-        Gtk_Helper::connect("configure-event", this, &Gtk_Main_Window::resize);
+        Gtk_Helper::connect3("configure-event", this, &Gtk_Main_Window::resize);
     }
 
     operator GtkWidget* (){ return this->window; }

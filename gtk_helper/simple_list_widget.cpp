@@ -31,7 +31,7 @@ Simple_List_Widget::Simple_List_Widget()
     func_ptr gtk_friendly_on_click_cb = on_click_cb;
 
     // We can't use the standard connect because the param order is different
-    Gtk_Helper::connect2(this->view_widget, "row-activated",
+    Gtk_Helper::connect_raw(this->view_widget, "row-activated",
                             gtk_friendly_on_click_cb, this);
 }
 
