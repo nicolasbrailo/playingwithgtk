@@ -195,7 +195,9 @@ int main(int argc, char *argv[])
     Gtk_Main_Window wnd;
 
     App app;
-    Gtk_Helper::Gtk_HBox box(app.dirs, app.imgs);
+
+    Gtk_Helper::Gtk_HBox box(app.dirs, Gtk_Helper::Gtk_HBox::Dont_Expand,
+                             app.imgs, Gtk_Helper::Gtk_HBox::Expand);
     wnd.autoresize(&app.imgs);
     wnd.add_widget(box);
     app.imgs.show();
@@ -204,5 +206,4 @@ int main(int argc, char *argv[])
     gtk_main();
     return 0;
 }
-
 

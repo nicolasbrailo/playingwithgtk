@@ -12,14 +12,26 @@ namespace Gtk_Helper {
  */
 class Gtk_HBox : Gtk_Object
 {
+    public:
+    // We need to define an object with a memory address for this flag
+    // because we'll need to get a reference to it (see unpack)
+    static const bool Expand;
+    static const bool Dont_Expand;
+
+    private:
     static const bool HOMOGENEOUS = false;
     static const unsigned SPACING = 2;
 
+    // We must define elm as a ref, because it'll be a gtk object (otherwise
+    // we'd be creating a copy of the object... not good). Since elm comes
+    // packed in Tail, then all elms in Tail MUST be refs. Since all elms
+    // in Tail must be refs, we need to second param (expand) to be defined
+    // as ref too
     template <typename Head, typename... Tail>
-    void unpack(Head &elm, Tail&... rest...)
+    void unpack(Head &elm, const bool &expand, Tail&... rest...)
     {
         /* gboolean expand, gboolean fill, guint padding */
-        gtk_box_pack_start(GTK_BOX(this->widget), elm, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(this->widget), elm, expand, true, 10);
 
         unpack(rest...);
     }
@@ -40,6 +52,9 @@ class Gtk_HBox : Gtk_Object
     private:
         GtkWidget *widget;
 };
+
+const bool Gtk_HBox::Expand = true;
+const bool Gtk_HBox::Dont_Expand = false;
 
 } // namespace Gtk_Helper
 
