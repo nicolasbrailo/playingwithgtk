@@ -29,13 +29,22 @@ class Image_Grid : Gtk_Object
             return this->drawable_widget->allocation.width;
         }
 
+        /**
+         * Put an image "somewhere" on the canvas; set the position later
+         * with place_image
+         */
         template <class T>
-        void place_image(T *img, unsigned img_width, unsigned img_height,
-                         unsigned horiz_pos_px, unsigned vert_pos_px)
+        void add_image(T *img, unsigned img_width, unsigned img_height)
         {
             gtk_widget_set_usize(img, img_width, img_height);
-            gtk_layout_put(GTK_LAYOUT(this->imgs_grid_widget), img, horiz_pos_px, vert_pos_px);
+            gtk_layout_put(GTK_LAYOUT(this->imgs_grid_widget), img, 0, 0);
             gtk_widget_show(img);
+        }
+
+        template <class T>
+        void place_image(T *img, unsigned horiz_pos_px, unsigned vert_pos_px)
+        {
+            gtk_layout_move(GTK_LAYOUT(this->imgs_grid_widget), img, horiz_pos_px, vert_pos_px);
         }
 
         template <class T>

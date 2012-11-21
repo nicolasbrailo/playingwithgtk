@@ -98,24 +98,27 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
     unsigned get_thumb_px_width() const { return 150; }
     unsigned get_thumb_px_height() const { return 150; }
     unsigned get_cols_per_row() const {
-        return this->get_width() / this->get_thumb_px_width();
+        auto n = this->get_width() / this->get_thumb_px_width();
+        return n < 1? 1 : n;
     }
 
     public:
     void add_widget(const Image_Cache::Mem_Image *img)
     {
         // TODO: should just forward Image_Cache::Mem_Image?
-        this->images.push_back(
-                new UI_Image(img->get_length(), img->get_buf())
-        );
+        auto ui_img = new UI_Image(img->get_length(), img->get_buf());
+        this->images.push_back(ui_img);
+        // Add to canvas
+        this->add_image(ui_img->get_raw_ui_ptr(),
+                        this->get_thumb_px_width(), this->get_thumb_px_height());
     }
 
-    void clear(bool remove_imgs=true)
+    void clear()
     {
         for (auto i : images)
         {
             this->remove_image(i->get_raw_ui_ptr());
-            if (remove_imgs) delete i;
+            delete i;
         }
 
         images.clear();
@@ -123,8 +126,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
 
     void resize()
     {
-        //this->clear(false);
-        //this->show();
+        this->show();
     }
 
     void show()
@@ -146,9 +148,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
             const unsigned horiz_pos_px = horiz_pos * thumb_cell_px_width;
             const unsigned vert_pos_px = vert_pos * thumb_cell_px_height;
 
-            this->place_image(images[i]->get_raw_ui_ptr(),
-                            this->get_thumb_px_width(), this->get_thumb_px_height(),
-                            horiz_pos_px, vert_pos_px);
+            this->place_image(images[i]->get_raw_ui_ptr(), horiz_pos_px, vert_pos_px);
         }
     }
 };
