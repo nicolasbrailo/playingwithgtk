@@ -15,6 +15,11 @@ using namespace std;
 using std::vector;
 
 
+typedef int Gdk_Evt_Processing;
+const Gdk_Evt_Processing GDK_SHOULD_CONTINUE_PROCESSING = 0;
+const Gdk_Evt_Processing GDK_SHOULD_STOP_PROCESSING = 0;
+
+
 class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 {
     public:
@@ -29,7 +34,6 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         gtk_container_set_border_width(GTK_CONTAINER(window), 10);
         gtk_window_set_default_size(GTK_WINDOW(window), 800, 600);
         gtk_window_set_resizable(GTK_WINDOW(window), true);
-        gtk_widget_add_events(GTK_WIDGET(window), GDK_CONFIGURE);
 
         // Attach callbacks
         Gtk_Helper::connect3("delete-event", this, &Gtk_Main_Window::close_window);
@@ -45,7 +49,7 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
     }
 
     template <class T>
-    void add_widget(T widget)
+    void add_widget(T &widget)
     {
         gtk_container_add(GTK_CONTAINER(this->window), widget);
     }
@@ -56,19 +60,21 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
         this->autoresize_obj = obj;
     }
 
-    void resize()
+    Gdk_Evt_Processing resize()
     {
         if (this->autoresize_obj)
         {
-            int width, height;
-            gtk_window_get_size(GTK_WINDOW(this->window), &width, &height);
-            this->autoresize_obj->resize(width-20, height-20);
+            //int width, height;
+            //gtk_window_get_size(GTK_WINDOW(this->window), &width, &height);
+            this->autoresize_obj->resize();
         }
+
+        return GDK_SHOULD_CONTINUE_PROCESSING;
     }
 
-    bool close_window()
+    Gdk_Evt_Processing close_window()
     {
-        return false; // Just close the window (will call quit)
+        return GDK_SHOULD_CONTINUE_PROCESSING;
     }
 
     void quit()
@@ -115,10 +121,10 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
         images.clear();
     }
 
-    void resize(int, int)
+    void resize()
     {
-        this->clear(false);
-        this->show();
+        //this->clear(false);
+        //this->show();
     }
 
     void show()
@@ -127,9 +133,6 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
         const unsigned thumb_cell_px_width = get_thumb_px_width() + get_row_px_spacing();
         const unsigned thumb_cell_px_height = get_thumb_px_height() + get_row_px_spacing();
         const unsigned cols_per_row = this->get_cols_per_row();
-
-        cout << cols_per_row << endl;
-        cout << this->get_width()<< "x" << this->get_thumb_px_width() << endl;
 
         unsigned cnt_imgs = images.size();
         for (unsigned i=0; i < cnt_imgs; ++i)
@@ -194,8 +197,7 @@ int main(int argc, char *argv[])
     App app;
     Gtk_Helper::Gtk_HBox box(app.dirs, app.imgs);
     wnd.autoresize(&app.imgs);
-    gtk_container_add(GTK_CONTAINER(wnd.window), box);
-    gtk_widget_show(app.imgs);
+    wnd.add_widget(box);
     app.imgs.show();
     wnd.show();
 

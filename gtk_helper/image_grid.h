@@ -8,22 +8,25 @@ namespace Gtk_Helper {
 
 class Image_Grid : Gtk_Object
 {
-    GtkWidget *widget;
+    GtkWidget *imgs_grid_widget;
+    protected: GtkWidget *drawable_widget; private:
 
     public:
         Image_Grid()
-                : widget(gtk_layout_new(NULL, NULL))
-        {}
+                : imgs_grid_widget(gtk_layout_new(NULL, NULL)),
+                  drawable_widget(gtk_scrolled_window_new(NULL, NULL))
+        {
+            gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(drawable_widget), imgs_grid_widget);
+        }
 
-        operator GtkWidget* (){ return this->widget; }
+        operator GtkWidget* (){ return this->drawable_widget; }
 
 
     protected:
         unsigned get_width() const
         {
-            int width, height;
-            gtk_widget_get_size_request(this->widget, &width, &height);
-            return width;
+            //return this->drawable_widget->allocation.height;
+            return this->drawable_widget->allocation.width;
         }
 
         template <class T>
@@ -31,7 +34,7 @@ class Image_Grid : Gtk_Object
                          unsigned horiz_pos_px, unsigned vert_pos_px)
         {
             gtk_widget_set_usize(img, img_width, img_height);
-            gtk_layout_put(GTK_LAYOUT(this->widget), img, horiz_pos_px, vert_pos_px);
+            gtk_layout_put(GTK_LAYOUT(this->imgs_grid_widget), img, horiz_pos_px, vert_pos_px);
             gtk_widget_show(img);
         }
 

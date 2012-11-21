@@ -18,15 +18,15 @@ namespace Gtk_Helper {
 
             void set_autoresizable_obj(ResizableContainer *p) { this->autoresizable_obj = p; }
 
-            virtual void resize(int width, int height)
+            virtual void resize()
             {
                 // Resize & then propagate the resize to the child
-                this->set_size(width, height);
+                this->set_size();
                 if (this->autoresizable_obj)
-                    this->autoresizable_obj->resize(width, height);
+                    this->autoresizable_obj->resize();
             }
 
-            virtual void set_size(int, int) {}
+            virtual void set_size() {}
     };
 
 
