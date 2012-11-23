@@ -88,6 +88,8 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 #include <thread>
 
 
+mutex global_gtk_lock;
+
 class DefImg
 {
     const string path;
@@ -101,13 +103,18 @@ class DefImg
             this->img = gtk_image_new_from_file("./empty.png");
         }
 
+        const string& get_path() const { return path; }
+
         template <class T>
         void update(T &cache)
         {
-            cout << "Start loading " << path << endl;
+            lock_guard<mutex> l(global_gtk_lock);
+            cout<< path  << "Start UI loading " << endl;
             auto mem_buf = cache[path];
             this->set_from_mem(mem_buf->get_length(), mem_buf->get_buf());
+            cout << path << "Set from mem " << endl;
             gtk_widget_show(img);
+            cout << path << "Done UI loading " << endl;
         }
 
         GtkWidget* get_raw_ui_ptr() { return img; }
@@ -135,7 +142,7 @@ template <class Cache> class ImgCacheProc
     vector<thread*> executors_lst;
 
     public:
-    ImgCacheProc(Cache &cache, unsigned executors=1) 
+    ImgCacheProc(Cache &cache, unsigned executors=2)
             : cache(cache)
     {
         for (unsigned i=0; i<executors; ++i)
@@ -161,7 +168,21 @@ template <class Cache> class ImgCacheProc
     {
         while (true) {
             DefImg* img = queue.pop();
-            // Is cache thread safe?
+
+            // Force cache fetching, if not already present
+            const string &path = img->get_path();
+            cout << path << "Loading to cache" << endl;
+            auto x = cache[path];
+            x = x;
+            cout << path << "loaded to cache" << endl;
+
+
+            for (auto i=1; i<=100000000; ++i);
+
+            // Now load the image in the UI, done separatedly because it might
+            // be non thread safe: this way we can paralelize the cache update
+            // and serialize the ui showing, if it's needed; this way we give
+            // img the chance to have a "UI mutex"
             img->update(cache);
         }
     }
@@ -291,75 +312,4 @@ int main(int argc, char *argv[])
     gtk_main();
     return 0;
 }
-
-
-#if 0
-
-mutex cout_lock;
-mutex img_lock;
-
-
-#include <Magick++.h>
-template <class T> void load_image(T *lst, int tn)
-{
-    while (true) {
-        string path = lst->pop();
-        {
-            lock_guard<mutex> l(cout_lock);
-            cout << "Got " << path << " in " << tn << endl;
-        }
-
-        try {
-            Magick::Image img;
-            img.read(path);
-            img.magick("png");
-            img.resize("150");
-
-            // Debug imgmagick
-            {
-                lock_guard<mutex> l(img_lock);
-                img.display();
-            }
-
-            Magick::Blob blob;
-            img.write(&blob);
-        } catch( Magick::Exception &error_ ) {
-            cout << "Caught Exception: " << error_.what() << endl;
-        } catch( exception &error_ ) {
-            cout << "Caught exception: " << error_.what() << endl;
-        } catch (...) {
-            cout << "WTF" << endl;
-        }
-    }
-}
-
-
-#include <queue>
-#include <thread>
-int main1(int, char **argv)
-{
-    typedef Sync_Queue<string> Cnt;
-    Cnt cnt;
-
-    auto imgs = {
-            "img/avestruz3zv.jpg", "img/no.jpg", "img/squirrel_overdose.jpg",
-            "img/trained_monkey.png", "img/vincent2.jpg", "img/vincent3.jpg",
-            "img/vincent4.jpg", "img/vincent.jpg"
-        };
-
-    for (auto i : imgs) {
-        cnt.push(i);
-    }
-
-    Magick::InitializeMagick(*argv);
-    thread t1(load_image<Cnt>, &cnt, 1);
-    thread t2(load_image<Cnt>, &cnt, 2);
-    t1.join();
-    t2.join();
-
-    return 0;
-}
-
-
-#endif
 

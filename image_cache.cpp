@@ -1,6 +1,10 @@
 #include "image_cache.h"
 #include <string.h>
+#include <mutex>
 
+using namespace std;
+
+static mutex global_cache_lock;
 
 
 Image_Cache::Mem_Image::Mem_Image(unsigned length, const void *buf)
@@ -32,12 +36,19 @@ Image_Cache::~Image_Cache()
 
 const Image_Cache::Mem_Image* Image_Cache::operator[] (const string &img_path)
 {
-    // Temp until we make this obj thread friendly
-    return this->load_image(img_path);
+    // try to get the img from cache
+    {
+        // TODO: This is read only, do we really need a lock?
+        lock_guard<mutex> l(global_cache_lock);
+        if (cache[img_path] != NULL) return cache[img_path];
+    }
 
-    if (cache[img_path] != NULL) return cache[img_path];
-    cache[img_path] = this->load_image(img_path);
-    return cache[img_path];
+    auto img = this->load_image(img_path);
+    {
+        lock_guard<mutex> l(global_cache_lock);
+        cache[img_path] = img;
+        return cache[img_path];
+    }
 }
 
 /**********************************************************/
