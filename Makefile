@@ -1,4 +1,5 @@
 CFLAGS=-Wall -Wextra -Wc++0x-compat -pedantic -ggdb -std=c++0x
+LDFLAGS=-lpthread
 GTK_LD=`pkg-config --libs gtk+-2.0`
 GTK_I=`pkg-config --cflags gtk+-2.0`
 MAGICPP_I=`pkg-config --cflags Magick++`
@@ -18,7 +19,7 @@ $(BUILD_DIR)%.o: %.cpp
 	g++ -c $(CFLAGS) $(GTK_I) $(MAGICPP_I) $< -o$@
 
 app: $(OBJ_FILES)
-	g++ $(OBJ_FILES) -o app $(GTK_LD) $(MAGICPP_LD)
+	g++ $(OBJ_FILES) -o app $(GTK_LD) $(MAGICPP_LD) $(LDFLAGS)
 
 # Build a deps file with makefile format dependencies of all the cpp files
 # Including it will cause each .o to be recompiled if a header was changed

@@ -2,6 +2,7 @@
 #define INCL_UI_IMAGES_H
 
 
+
 #include "gtk_helper/general.h"
 
 class Gtk_UI_Image : Gtk_Helper::Gtk_Object

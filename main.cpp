@@ -85,6 +85,88 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 
 
 
+#include <thread>
+
+
+class DefImg
+{
+    const string path;
+    GtkWidget *img;
+    thread *t;
+
+    public:
+        DefImg(const string &path)
+            : path(path)
+        {
+            this->img = gtk_image_new_from_file("./empty.png");
+        }
+
+        template <class T>
+        void update(T &cache)
+        {
+            cout << "Start loading " << path << endl;
+            auto mem_buf = cache[path];
+            this->set_from_mem(mem_buf->get_length(), mem_buf->get_buf());
+            gtk_widget_show(img);
+        }
+
+        GtkWidget* get_raw_ui_ptr() { return img; }
+
+    private:
+        void set_from_mem(unsigned len, const void* buf)
+        {
+            auto pb_loader = gdk_pixbuf_loader_new_with_type("png", NULL);
+            bool ok = gdk_pixbuf_loader_write(pb_loader, (const guchar*)buf, len, NULL);
+            ok = gdk_pixbuf_loader_close(pb_loader, NULL);
+            ok = ok;
+            auto pb =  gdk_pixbuf_loader_get_pixbuf(pb_loader);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(this->img), pb);
+        }
+};
+
+
+#include "sync_queue.h"
+#include <vector>
+
+template <class Cache> class ImgCacheProc
+{
+    Cache &cache;
+    Sync_Queue<DefImg*> queue;
+    vector<thread*> executors_lst;
+
+    public:
+    ImgCacheProc(Cache &cache, unsigned executors=1) 
+            : cache(cache)
+    {
+        for (unsigned i=0; i<executors; ++i)
+            executors_lst.push_back( new thread(&ImgCacheProc<Cache>::executor, this) );
+    }
+
+    virtual ~ImgCacheProc()
+    {
+        for (auto ex : executors_lst)
+        {
+            // TODO: Signal end
+            ex->join();
+        }
+    }
+
+    void deferr_thumbnail(DefImg *img)
+    {
+        queue.push(img);
+    }
+
+    private:
+    void executor()
+    {
+        while (true) {
+            DefImg* img = queue.pop();
+            // Is cache thread safe?
+            img->update(cache);
+        }
+    }
+};
+
 
 #include "image_cache.h"
 #include "gtk_helper/image_grid.h"
@@ -103,10 +185,12 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
     }
 
     public:
-    void add_widget(const Image_Cache::Mem_Image *img)
+    template <class Cache>
+    void add_widget(Cache &cache, const string &path)
     {
-        // TODO: should just forward Image_Cache::Mem_Image?
-        auto ui_img = new UI_Image(img->get_length(), img->get_buf());
+        auto ui_img = new UI_Image(path);
+        cache.deferr_thumbnail(ui_img);
+
         this->images.push_back(ui_img);
         // Add to canvas
         this->add_image(ui_img->get_raw_ui_ptr(),
@@ -158,11 +242,13 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
 struct App : public Path_Handler::Dir_Changed_CB
 {
     Magick_Thumbnail_Cache cache;
-    Image_Grid<Magick_Thumbnail_Cache::UI_Image_Impl> imgs;
+    Image_Grid< DefImg > imgs;
+    ImgCacheProc<Magick_Thumbnail_Cache> def_proc;
     Path_Handler dirs;
 
     App()
             : cache("150"),
+              def_proc(cache),
               dirs(".", this)
     {}
 
@@ -175,14 +261,13 @@ struct App : public Path_Handler::Dir_Changed_CB
         for (auto i : files)
         {
             auto img_abs_path = cwd + '/' + i;
-            // TODO: Render unrendereable imgs with a broken icon
-            const Image_Cache::Mem_Image *img = cache[img_abs_path];
-            imgs.add_widget(img);
+            imgs.add_widget(def_proc, img_abs_path);
         }
 
         imgs.show();
     }
 };
+
 
 
 
@@ -206,4 +291,75 @@ int main(int argc, char *argv[])
     gtk_main();
     return 0;
 }
+
+
+#if 0
+
+mutex cout_lock;
+mutex img_lock;
+
+
+#include <Magick++.h>
+template <class T> void load_image(T *lst, int tn)
+{
+    while (true) {
+        string path = lst->pop();
+        {
+            lock_guard<mutex> l(cout_lock);
+            cout << "Got " << path << " in " << tn << endl;
+        }
+
+        try {
+            Magick::Image img;
+            img.read(path);
+            img.magick("png");
+            img.resize("150");
+
+            // Debug imgmagick
+            {
+                lock_guard<mutex> l(img_lock);
+                img.display();
+            }
+
+            Magick::Blob blob;
+            img.write(&blob);
+        } catch( Magick::Exception &error_ ) {
+            cout << "Caught Exception: " << error_.what() << endl;
+        } catch( exception &error_ ) {
+            cout << "Caught exception: " << error_.what() << endl;
+        } catch (...) {
+            cout << "WTF" << endl;
+        }
+    }
+}
+
+
+#include <queue>
+#include <thread>
+int main1(int, char **argv)
+{
+    typedef Sync_Queue<string> Cnt;
+    Cnt cnt;
+
+    auto imgs = {
+            "img/avestruz3zv.jpg", "img/no.jpg", "img/squirrel_overdose.jpg",
+            "img/trained_monkey.png", "img/vincent2.jpg", "img/vincent3.jpg",
+            "img/vincent4.jpg", "img/vincent.jpg"
+        };
+
+    for (auto i : imgs) {
+        cnt.push(i);
+    }
+
+    Magick::InitializeMagick(*argv);
+    thread t1(load_image<Cnt>, &cnt, 1);
+    thread t2(load_image<Cnt>, &cnt, 2);
+    t1.join();
+    t2.join();
+
+    return 0;
+}
+
+
+#endif
 

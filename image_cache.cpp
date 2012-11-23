@@ -32,6 +32,9 @@ Image_Cache::~Image_Cache()
 
 const Image_Cache::Mem_Image* Image_Cache::operator[] (const string &img_path)
 {
+    // Temp until we make this obj thread friendly
+    return this->load_image(img_path);
+
     if (cache[img_path] != NULL) return cache[img_path];
     cache[img_path] = this->load_image(img_path);
     return cache[img_path];
@@ -53,7 +56,7 @@ Image_Cache::Mem_Image* Pixbuf_Resize_Thumbnail_Cache::load_image(const string &
     return new Image_Cache::Mem_Image(len, gdk_pixbuf_get_pixels(resized_pb));
 }
 
-
+#include <iostream>
 
 #include <Magick++.h>
 Image_Cache::Mem_Image* Magick_Thumbnail_Cache::load_image(const string &path) const
