@@ -20,6 +20,14 @@ const Gdk_Evt_Processing GDK_SHOULD_CONTINUE_PROCESSING = 0;
 const Gdk_Evt_Processing GDK_SHOULD_STOP_PROCESSING = 0;
 
 
+struct Global_UI_Guard
+{
+    Global_UI_Guard() { gdk_threads_enter(); }
+    ~Global_UI_Guard() { gdk_threads_leave(); }
+
+    static void init() { gdk_threads_init(); }
+};
+
 class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 {
     public:
@@ -108,13 +116,10 @@ class DefImg
         template <class T>
         void update(T &cache)
         {
-            lock_guard<mutex> l(global_gtk_lock);
-            cout<< path  << "Start UI loading " << endl;
+            Global_UI_Guard ui_guard;
             auto mem_buf = cache[path];
             this->set_from_mem(mem_buf->get_length(), mem_buf->get_buf());
-            cout << path << "Set from mem " << endl;
             gtk_widget_show(img);
-            cout << path << "Done UI loading " << endl;
         }
 
         GtkWidget* get_raw_ui_ptr() { return img; }
@@ -142,7 +147,7 @@ template <class Cache> class ImgCacheProc
     vector<thread*> executors_lst;
 
     public:
-    ImgCacheProc(Cache &cache, unsigned executors=2)
+    ImgCacheProc(Cache &cache, unsigned executors=10)
             : cache(cache)
     {
         for (unsigned i=0; i<executors; ++i)
@@ -171,13 +176,8 @@ template <class Cache> class ImgCacheProc
 
             // Force cache fetching, if not already present
             const string &path = img->get_path();
-            cout << path << "Loading to cache" << endl;
             auto x = cache[path];
             x = x;
-            cout << path << "loaded to cache" << endl;
-
-
-            for (auto i=1; i<=100000000; ++i);
 
             // Now load the image in the UI, done separatedly because it might
             // be non thread safe: this way we can paralelize the cache update
@@ -295,9 +295,10 @@ struct App : public Path_Handler::Dir_Changed_CB
 #include "gtk_helper/button.h"
 #include "gtk_helper/hbox.h"
 
-int main2(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
+    Global_UI_Guard::init();
     Gtk_Main_Window wnd;
 
     App app;
@@ -309,125 +310,8 @@ int main2(int argc, char *argv[])
     app.imgs.show();
     wnd.show();
 
-    gtk_main();
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-#include <string.h>
-class Mem_Image
-{
-    unsigned length;
-    char *buf;
-
-    public:
-    unsigned get_length() const { return length; }
-    const char* get_buf() const { return buf; }
-    Mem_Image(unsigned length, const void *buf)
-            : length(length), buf(new char[length])
-    {
-        memcpy(this->buf, buf, length);
-    }
-
-    ~Mem_Image() {delete[] this->buf;}
-};
-
-
-struct Global_UI_Guard
-{
-    Global_UI_Guard() { gdk_threads_enter(); }
-    ~Global_UI_Guard() { gdk_threads_leave(); }
-
-    static void init() { gdk_threads_init(); }
-};
-
-template <class T> void p(int th, T msg){ cout << "TH " << th << ", " << msg << endl; }
-
-#include <Magick++.h>
-void update(GtkWidget *img, const char *path, int th)
-{
-    p(th, "Fetching img");
-    Magick::Image imgm;
-    imgm.read(path);
-    imgm.magick("png");
-    imgm.resize("150");
-    Magick::Blob blob;
-    imgm.write(&blob);
-    auto x = new Mem_Image(blob.length(), blob.data());
-    p(th, "Created IMG blob");
-
-    Global_UI_Guard ui_guard;
-
-    auto pb_loader = gdk_pixbuf_loader_new_with_type("png", NULL);
-    bool ok = gdk_pixbuf_loader_write(pb_loader, (const guchar*)x->get_buf(), x->get_length(), NULL);
-    gdk_pixbuf_loader_close(pb_loader, NULL);
-    auto pb =  gdk_pixbuf_loader_get_pixbuf(pb_loader);
-    p(th, "Loaded blob to pixbuf");
-    gtk_image_set_from_pixbuf(GTK_IMAGE(img), pb);
-    p(th, "Set IMG");
-    gtk_widget_show(img);
-    p(th, "GTK show IMG");
-}
-
-void foo(GtkWidget *img, int th)
-{
-    char* imgs[] = {
-                "./img/no.jpg",
-                "./img/squirrel_overdose.jpg",
-                "./img/trained_monkey.png"
-                };
-
-    unsigned idx = th;
-    while (true)
-    {
-        auto path = imgs[idx++ % 2];
-        update(img, path, th);
-    }
-}
-
-int main(int argc, char *argv[])
-{
-    
-    gtk_init(&argc, &argv);
-    Gtk_Main_Window wnd;
-    Global_UI_Guard::init();
-
-    int th = 0;
-    p(th, "Creating tmpl imgs");
-    auto img1 = gtk_image_new_from_file("./empty.png");
-    auto img2 = gtk_image_new_from_file("./empty.png");
-    auto img3 = gtk_image_new_from_file("./empty.png");
-    p(th, "Done. Launching threads");
-
-    thread t1(foo, img1, 1);
-    thread t2(foo, img2, 2);
-    thread t3(foo, img3, 3);
-
-    p(th, "Done. Creating img box");
-    Gtk_Helper::Gtk_HBox box(img1, Gtk_Helper::Gtk_HBox::Dont_Expand,
-                             img2, Gtk_Helper::Gtk_HBox::Dont_Expand,
-                             img3, Gtk_Helper::Gtk_HBox::Dont_Expand);
-
-    wnd.add_widget(box);
-    p(th, "Showing window");
-    
-    wnd.show();
     Global_UI_Guard ui_guard;
     gtk_main();
-
-    p(th, "Exit. Wait for th join");
-    t1.join();
-    t2.join();
-    t3.join();
     return 0;
 }
 
