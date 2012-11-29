@@ -342,6 +342,14 @@ class Mem_Image
 };
 
 
+struct Global_UI_Guard
+{
+    Global_UI_Guard() { gdk_threads_enter(); }
+    ~Global_UI_Guard() { gdk_threads_leave(); }
+
+    static void init() { gdk_threads_init(); }
+};
+
 template <class T> void p(int th, T msg){ cout << "TH " << th << ", " << msg << endl; }
 
 #include <Magick++.h>
@@ -357,7 +365,8 @@ void update(GtkWidget *img, const char *path, int th)
     auto x = new Mem_Image(blob.length(), blob.data());
     p(th, "Created IMG blob");
 
-    gdk_threads_enter();
+    Global_UI_Guard ui_guard;
+
     auto pb_loader = gdk_pixbuf_loader_new_with_type("png", NULL);
     bool ok = gdk_pixbuf_loader_write(pb_loader, (const guchar*)x->get_buf(), x->get_length(), NULL);
     gdk_pixbuf_loader_close(pb_loader, NULL);
@@ -367,7 +376,6 @@ void update(GtkWidget *img, const char *path, int th)
     p(th, "Set IMG");
     gtk_widget_show(img);
     p(th, "GTK show IMG");
-    gdk_threads_leave();
 }
 
 void foo(GtkWidget *img, int th)
@@ -388,9 +396,10 @@ void foo(GtkWidget *img, int th)
 
 int main(int argc, char *argv[])
 {
-    gdk_threads_init();
+    
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
+    Global_UI_Guard::init();
 
     int th = 0;
     p(th, "Creating tmpl imgs");
@@ -412,9 +421,9 @@ int main(int argc, char *argv[])
     p(th, "Showing window");
     
     wnd.show();
-    gdk_threads_enter();
+    Global_UI_Guard ui_guard;
     gtk_main();
-    gdk_threads_leave();
+
     p(th, "Exit. Wait for th join");
     t1.join();
     t2.join();
