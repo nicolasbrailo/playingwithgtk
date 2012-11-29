@@ -295,7 +295,7 @@ struct App : public Path_Handler::Dir_Changed_CB
 #include "gtk_helper/button.h"
 #include "gtk_helper/hbox.h"
 
-int main(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
     Gtk_Main_Window wnd;
@@ -310,6 +310,115 @@ int main(int argc, char *argv[])
     wnd.show();
 
     gtk_main();
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+#include <string.h>
+class Mem_Image
+{
+    unsigned length;
+    char *buf;
+
+    public:
+    unsigned get_length() const { return length; }
+    const char* get_buf() const { return buf; }
+    Mem_Image(unsigned length, const void *buf)
+            : length(length), buf(new char[length])
+    {
+        memcpy(this->buf, buf, length);
+    }
+
+    ~Mem_Image() {delete[] this->buf;}
+};
+
+
+template <class T> void p(int th, T msg){ cout << "TH " << th << ", " << msg << endl; }
+
+#include <Magick++.h>
+void update(GtkWidget *img, const char *path, int th)
+{
+    p(th, "Fetching img");
+    Magick::Image imgm;
+    imgm.read(path);
+    imgm.magick("png");
+    imgm.resize("150");
+    Magick::Blob blob;
+    imgm.write(&blob);
+    auto x = new Mem_Image(blob.length(), blob.data());
+    p(th, "Created IMG blob");
+
+    gdk_threads_enter();
+    auto pb_loader = gdk_pixbuf_loader_new_with_type("png", NULL);
+    bool ok = gdk_pixbuf_loader_write(pb_loader, (const guchar*)x->get_buf(), x->get_length(), NULL);
+    gdk_pixbuf_loader_close(pb_loader, NULL);
+    auto pb =  gdk_pixbuf_loader_get_pixbuf(pb_loader);
+    p(th, "Loaded blob to pixbuf");
+    gtk_image_set_from_pixbuf(GTK_IMAGE(img), pb);
+    p(th, "Set IMG");
+    gtk_widget_show(img);
+    p(th, "GTK show IMG");
+    gdk_threads_leave();
+}
+
+void foo(GtkWidget *img, int th)
+{
+    char* imgs[] = {
+                "./img/no.jpg",
+                "./img/squirrel_overdose.jpg",
+                "./img/trained_monkey.png"
+                };
+
+    unsigned idx = th;
+    while (true)
+    {
+        auto path = imgs[idx++ % 2];
+        update(img, path, th);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    gdk_threads_init();
+    gtk_init(&argc, &argv);
+    Gtk_Main_Window wnd;
+
+    int th = 0;
+    p(th, "Creating tmpl imgs");
+    auto img1 = gtk_image_new_from_file("./empty.png");
+    auto img2 = gtk_image_new_from_file("./empty.png");
+    auto img3 = gtk_image_new_from_file("./empty.png");
+    p(th, "Done. Launching threads");
+
+    thread t1(foo, img1, 1);
+    thread t2(foo, img2, 2);
+    thread t3(foo, img3, 3);
+
+    p(th, "Done. Creating img box");
+    Gtk_Helper::Gtk_HBox box(img1, Gtk_Helper::Gtk_HBox::Dont_Expand,
+                             img2, Gtk_Helper::Gtk_HBox::Dont_Expand,
+                             img3, Gtk_Helper::Gtk_HBox::Dont_Expand);
+
+    wnd.add_widget(box);
+    p(th, "Showing window");
+    
+    wnd.show();
+    gdk_threads_enter();
+    gtk_main();
+    gdk_threads_leave();
+    p(th, "Exit. Wait for th join");
+    t1.join();
+    t2.join();
+    t3.join();
     return 0;
 }
 
