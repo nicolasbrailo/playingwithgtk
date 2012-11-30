@@ -1,9 +1,6 @@
 #ifndef INCL_IMAGES_CACHE_H
 #define INCL_IMAGES_CACHE_H
 
-// Used to get the UI_Images IMPL for each cache type
-#include "ui_images.h"
-
 #include <string>
 #include <map>
 using std::string;
@@ -43,47 +40,8 @@ class Image_Cache
      */
     const Mem_Image* operator[] (const string &img_path);
 
-    protected:
-    /**
-     * Subclass responsibility. Loads an image not present in the cache.
-     * eg. load_image will get an image from the filesystem and return a
-     * Mem_Image object containing a buffer with the image in PNG format.
-     **/
-    virtual Mem_Image* load_image(const string &img_path) const = 0;
-
     private:
     map<const string, Mem_Image*> cache;
-};
-
-
-/**
- * Gets an image from the file system and resizes it using a GDK pixbuf object.
- * Will store the image directly in pixbuf format.
- */
-class Pixbuf_Resize_Thumbnail_Cache : public Image_Cache
-{
-    protected:
-    Image_Cache::Mem_Image* load_image(const string &path) const;
-
-    public:
-    typedef Gtk_Image_From_Pixbuf_Buffer UI_Image_Impl;
-};
-
-
-/**
- * Gets an image from the filesystem and resizes it using ImageMagick.
- * Can read pretty much any type of images. Will cache the image in PNG format.
- */
-class Magick_Thumbnail_Cache : public Image_Cache
-{
-    const string &width;
-
-    public:
-    Magick_Thumbnail_Cache(const string &width) : width(width) {}
-    typedef Gtk_Image_From_PNG_Buff UI_Image_Impl;
-
-    protected:
-    Image_Cache::Mem_Image* load_image(const string &path) const;
 };
 
 

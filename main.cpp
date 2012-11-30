@@ -7,9 +7,6 @@ using namespace std;
 #include <string>
 
 
-#include "ui_images.h"
-#include "gtk_helper/general.h"
-
 #include <gtk/gtk.h>
 #include <vector>
 using std::vector;
@@ -96,46 +93,7 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 #include <thread>
 
 
-mutex global_gtk_lock;
-
-class DefImg
-{
-    const string path;
-    GtkWidget *img;
-    thread *t;
-
-    public:
-        DefImg(const string &path)
-            : path(path)
-        {
-            this->img = gtk_image_new_from_file("./empty.png");
-        }
-
-        const string& get_path() const { return path; }
-
-        template <class T>
-        void update(T &cache)
-        {
-            Global_UI_Guard ui_guard;
-            auto mem_buf = cache[path];
-            this->set_from_mem(mem_buf->get_length(), mem_buf->get_buf());
-            gtk_widget_show(img);
-        }
-
-        GtkWidget* get_raw_ui_ptr() { return img; }
-
-    private:
-        void set_from_mem(unsigned len, const void* buf)
-        {
-            auto pb_loader = gdk_pixbuf_loader_new_with_type("png", NULL);
-            bool ok = gdk_pixbuf_loader_write(pb_loader, (const guchar*)buf, len, NULL);
-            ok = gdk_pixbuf_loader_close(pb_loader, NULL);
-            ok = ok;
-            auto pb =  gdk_pixbuf_loader_get_pixbuf(pb_loader);
-            gtk_image_set_from_pixbuf(GTK_IMAGE(this->img), pb);
-        }
-};
-
+#include "image.h"
 
 #include "sync_queue.h"
 #include <vector>
@@ -143,7 +101,7 @@ class DefImg
 template <class Cache> class ImgCacheProc
 {
     Cache &cache;
-    Sync_Queue<DefImg*> queue;
+    Sync_Queue<Image*> queue;
     vector<thread*> executors_lst;
 
     public:
@@ -163,7 +121,7 @@ template <class Cache> class ImgCacheProc
         }
     }
 
-    void deferr_thumbnail(DefImg *img)
+    void deferr_thumbnail(Image *img)
     {
         queue.push(img);
     }
@@ -172,7 +130,7 @@ template <class Cache> class ImgCacheProc
     void executor()
     {
         while (true) {
-            DefImg* img = queue.pop();
+            Image * img = queue.pop();
 
             // Force cache fetching, if not already present
             const string &path = img->get_path();
@@ -209,7 +167,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
     template <class Cache>
     void add_widget(Cache &cache, const string &path)
     {
-        auto ui_img = new UI_Image(path);
+        auto ui_img = new UI_Image(path, "./empty.png");
         cache.deferr_thumbnail(ui_img);
 
         this->images.push_back(ui_img);
@@ -262,15 +220,14 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
 #include "path_handler.h"
 struct App : public Path_Handler::Dir_Changed_CB
 {
-    Magick_Thumbnail_Cache cache;
-    Image_Grid< DefImg > imgs;
-    ImgCacheProc<Magick_Thumbnail_Cache> def_proc;
+    Image_Cache cache;
+    Image_Grid< Image > imgs;
+    ImgCacheProc<Image_Cache> def_proc;
     Path_Handler dirs;
 
     App()
-            : cache("150"),
-              def_proc(cache),
-              dirs(".", this)
+        : def_proc(cache),
+          dirs(".", this)
     {}
 
     void on_dir_changed(const Path_Handler *path)

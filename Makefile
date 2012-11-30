@@ -19,7 +19,7 @@ $(BUILD_DIR)%.o: %.cpp
 	g++ -c $(CFLAGS) $(GTK_I) $(MAGICPP_I) $< -o$@
 
 app: $(OBJ_FILES)
-	g++ $(OBJ_FILES) -o app $(GTK_LD) $(MAGICPP_LD) $(LDFLAGS)
+	g++ $(CFLAGS) $(OBJ_FILES) -o app $(GTK_LD) $(MAGICPP_LD) $(LDFLAGS)
 
 # Build a deps file with makefile format dependencies of all the cpp files
 # Including it will cause each .o to be recompiled if a header was changed
@@ -32,7 +32,7 @@ $(DEPS_FILE):
 
 	@# pattern = '*.o: ' -> (in awk format) -> /\..: /
 	@# awk 'if line matches pattern {print build/$line; break} else {print $line}'
-	g++ -MM $(CPP_FILES) | \
+	g++ $(CFLAGS) -MM $(CPP_FILES) | \
 		awk '$$0 ~ /\..: / {print "$(BUILD_DIR)"$$0; next} 1' > $@
 
 
