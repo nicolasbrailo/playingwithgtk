@@ -267,15 +267,36 @@ struct Scrolling_Image
         gtk_widget_set_usize(canvas, 512, 512);
         gtk_widget_set_usize(canvas_window, 512, 512);
 
-        for (int x_tile_pos = -600; x_tile_pos < 600; x_tile_pos += tile_width)
-        {
-            for (int y_tile_pos = -600; y_tile_pos < 600; y_tile_pos += tile_height)
-            {
-                auto img = new Scr_Img("./empty.png", x_tile_pos, y_tile_pos, tile_width, tile_height);
-                gtk_layout_put(GTK_LAYOUT(canvas), img->img, -1000, -1000);
-                tiles.push_back(img);
-            }
-        }
+
+        auto img1 = new Scr_Img("./map/img1.png", 0,   0, tile_width, tile_height);
+        auto img2 = new Scr_Img("./map/img2.png", 256, 0, tile_width, tile_height);
+        auto img3 = new Scr_Img("./map/img3.png", 512, 0, tile_width, tile_height);
+        auto img4 = new Scr_Img("./map/img4.png", 0,   256, tile_width, tile_height);
+        auto img5 = new Scr_Img("./map/img5.png", 256, 256, tile_width, tile_height);
+        auto img6 = new Scr_Img("./map/img6.png", 512, 256, tile_width, tile_height);
+        auto img7 = new Scr_Img("./map/img7.png", 0,   512, tile_width, tile_height);
+        auto img8 = new Scr_Img("./map/img8.png", 256, 512, tile_width, tile_height);
+        auto img9 = new Scr_Img("./map/img9.png", 512, 512, tile_width, tile_height);
+
+        tiles.push_back(img1);
+        tiles.push_back(img2);
+        tiles.push_back(img3);
+        tiles.push_back(img4);
+        tiles.push_back(img5);
+        tiles.push_back(img6);
+        tiles.push_back(img7);
+        tiles.push_back(img8);
+        tiles.push_back(img9);
+
+        gtk_layout_put(GTK_LAYOUT(canvas), img1->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img2->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img3->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img4->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img5->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img6->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img7->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img8->img, -1000, -1000);
+        gtk_layout_put(GTK_LAYOUT(canvas), img9->img, -1000, -1000);
 
         foo();
     }
