@@ -309,10 +309,11 @@ struct Scrolling_Image
         int min_x = current_pos_x - (current_pos_x % tile_width);
         int min_y = current_pos_y - (current_pos_y % tile_width);
 
-        int preload_x_start = min_x - 2*tile_width;
-        int preload_y_start = min_y - 2*tile_height;
-        int preload_x_end = min_x + 2*tile_width;
-        int preload_y_end = min_y + 2*tile_height;
+        unsigned tiles_to_cache = 3;
+        int preload_x_start = min_x - tiles_to_cache * tile_width;
+        int preload_y_start = min_y - tiles_to_cache *tile_height;
+        int preload_x_end = min_x + tiles_to_cache *tile_width;
+        int preload_y_end = min_y + tiles_to_cache *tile_height;
 
         for (int x = preload_x_start; x < preload_x_end; x += tile_width) {
             for (int y = preload_y_start; y < preload_y_end; y += tile_height) {
@@ -346,24 +347,6 @@ struct Scrolling_Image
     static void _released(void*, GdkEventButton* event, Scrolling_Image *self)
         { self->released(event->x, event->y); }
 
-    void foo()
-    {
-        int current_pos_end_x = current_pos_x + 400;
-        int current_pos_end_y = current_pos_y + 400;
-
-        for (auto tile : tiles)
-        {
-            bool in_x_range = tile->abs_x > current_pos_x or tile->abs_x < current_pos_end_x;
-            bool in_y_range = tile->abs_y > current_pos_y or tile->abs_y < current_pos_end_y;
-
-            if (in_x_range and in_y_range)
-            {
-                int x_tile_pos = tile->abs_x - current_pos_x;
-                int y_tile_pos = tile->abs_y - current_pos_y;
-                gtk_layout_move(GTK_LAYOUT(canvas), tile->img, x_tile_pos, y_tile_pos);
-            }
-        }
-    }
 };
 
 
