@@ -1,5 +1,5 @@
 CFLAGS=-Wall -Wextra -Wc++0x-compat -pedantic -ggdb -std=c++0x
-LDFLAGS=-lpthread
+LDFLAGS=-lpthread -lcurl
 GTK_LD=`pkg-config --libs gtk+-2.0`
 GTK_I=`pkg-config --cflags gtk+-2.0`
 MAGICPP_I=`pkg-config --cflags Magick++`

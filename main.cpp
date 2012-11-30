@@ -221,6 +221,14 @@ int main2(int argc, char *argv[])
     return 0;
 }
 
+#include "wget.h"
+int main()
+{
+    wget("http://tile.openstreetmap.org/7/64/43.png", "./foo.png");
+    return 0;
+}
+
+
 
 
 struct Scr_Img
@@ -237,6 +245,28 @@ struct Scr_Img
         gtk_widget_set_usize(img, width, height);
     }
 };
+
+const string get_coord_path(int abs_x, int abs_y)
+{
+    if (abs_x == 0   and abs_y == 0  ) return "./map/img1.png";
+    if (abs_x == 256 and abs_y == 0  ) return "./map/img2.png";
+    if (abs_x == 512 and abs_y == 0  ) return "./map/img3.png";
+    if (abs_x == 0   and abs_y == 256) return "./map/img4.png";
+    if (abs_x == 256 and abs_y == 256) return "./map/img5.png";
+    if (abs_x == 512 and abs_y == 256) return "./map/img6.png";
+    if (abs_x == 0   and abs_y == 512) return "./map/img7.png";
+    if (abs_x == 256 and abs_y == 512) return "./map/img8.png";
+    if (abs_x == 512 and abs_y == 512) return "./map/img9.png";
+    return "";
+}
+
+Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
+{
+    const string& path = get_coord_path(abs_x, abs_y);
+    if (path == "") return NULL;
+    return new Scr_Img(path, abs_x, abs_y, width, height);
+}
+
 
 struct Scrolling_Image
 {
@@ -264,11 +294,11 @@ struct Scrolling_Image
         Gtk_Helper::connect_raw(canvas, "button-press-event", &Scrolling_Image::_clicked, this);
         Gtk_Helper::connect_raw(canvas, "button-release-event", &Scrolling_Image::_released, this);
 
-        gtk_widget_set_usize(canvas, 512, 512);
-        gtk_widget_set_usize(canvas_window, 512, 512);
+        gtk_widget_set_usize(canvas, 256, 256);
+        gtk_widget_set_usize(canvas_window, 256, 256);
 
 
-        http://tile.openstreetmap.org/7/64/43.png
+        // http://tile.openstreetmap.org/7/64/43.png
         auto img1 = new Scr_Img("./map/img1.png", 0,   0, tile_width, tile_height);
         auto img2 = new Scr_Img("./map/img2.png", 256, 0, tile_width, tile_height);
         auto img3 = new Scr_Img("./map/img3.png", 512, 0, tile_width, tile_height);
@@ -307,8 +337,8 @@ struct Scrolling_Image
     void released(int x, int y) {
         int dx = x - click_start_x;
         int dy = y - click_start_y; 
-        current_pos_x += dx;
-        current_pos_y += dy;
+        current_pos_x -= dx;
+        current_pos_y -= dy;
         foo();
     }
 
@@ -338,7 +368,7 @@ struct Scrolling_Image
 };
 
 
-int main(int argc, char *argv[])
+int main3(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
     Global_UI_Guard::init();
