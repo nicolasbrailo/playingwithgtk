@@ -284,7 +284,7 @@ struct Scrolling_Image
 
     Scrolling_Image()
             : tile_height(256), tile_width(256),
-              canvas_height(512), canvas_width(512),
+              canvas_height(512), canvas_width(300),
               tiles_to_cache(3),
               current_pos_x(0), current_pos_y(0)
     {
@@ -360,30 +360,22 @@ int main(int argc, char *argv[])
     Global_UI_Guard::init();
     Gtk_Main_Window wnd;
 
+    App app;
     Scrolling_Image img;
 
-    wnd.add_widget(img.canvas_window);
+    Gtk_Helper::Gtk_HBox box(app.dirs, Gtk_Helper::Gtk_HBox::Dont_Expand,
+                             app.imgs, Gtk_Helper::Gtk_HBox::Expand,
+                             img.canvas_window, Gtk_Helper::Gtk_HBox::Dont_Expand);
+    wnd.autoresize(&app.imgs);
+    wnd.add_widget(box);
+    app.imgs.show();
     wnd.show();
 
     Global_UI_Guard ui_guard;
     gtk_main();
     return 0;
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
