@@ -94,58 +94,7 @@ class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 
 
 #include "image.h"
-
-#include "sync_queue.h"
-#include <vector>
-
-template <class Cache> class ImgCacheProc
-{
-    Cache &cache;
-    Sync_Queue<Image*> queue;
-    vector<thread*> executors_lst;
-
-    public:
-    ImgCacheProc(Cache &cache, unsigned executors=10)
-            : cache(cache)
-    {
-        for (unsigned i=0; i<executors; ++i)
-            executors_lst.push_back( new thread(&ImgCacheProc<Cache>::executor, this) );
-    }
-
-    virtual ~ImgCacheProc()
-    {
-        for (auto ex : executors_lst)
-        {
-            // TODO: Signal end
-            ex->join();
-        }
-    }
-
-    void deferr_thumbnail(Image *img)
-    {
-        queue.push(img);
-    }
-
-    private:
-    void executor()
-    {
-        while (true) {
-            Image * img = queue.pop();
-
-            // Force cache fetching, if not already present
-            const string &path = img->get_path();
-            auto x = cache[path];
-            x = x;
-
-            // Now load the image in the UI, done separatedly because it might
-            // be non thread safe: this way we can paralelize the cache update
-            // and serialize the ui showing, if it's needed; this way we give
-            // img the chance to have a "UI mutex"
-            img->update(cache);
-        }
-    }
-};
-
+#include "deferred_image_loader.h"
 
 #include "image_cache.h"
 #include "gtk_helper/image_grid.h"
@@ -168,7 +117,7 @@ class Image_Grid : public Gtk_Helper::Image_Grid, public Gtk_Helper::ResizableCo
     void add_widget(Cache &cache, const string &path)
     {
         auto ui_img = new UI_Image(path, "./empty.png");
-        cache.deferr_thumbnail(ui_img);
+        cache.process(ui_img);
 
         this->images.push_back(ui_img);
         // Add to canvas
@@ -222,11 +171,11 @@ struct App : public Path_Handler::Dir_Changed_CB
 {
     Image_Cache cache;
     Image_Grid< Image > imgs;
-    ImgCacheProc<Image_Cache> def_proc;
+    Deferred_Image_Loader<Image_Cache, Image> def_proc;
     Path_Handler dirs;
 
     App()
-        : def_proc(cache),
+        : def_proc(cache, 5),
           dirs(".", this)
     {}
 

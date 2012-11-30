@@ -16,11 +16,10 @@ class Image : public Gtk_Helper::Image
 
         const std::string& get_path() const { return path; }
 
-        template <class T> void update(T &cache)
+        void update(unsigned length, const char *buf)
         {
-            auto mem_buf = cache[path];
             Global_UI_Guard ui_guard;
-            this->set_from_png_buff(mem_buf->get_length(), mem_buf->get_buf());
+            this->set_from_png_buff(length, buf);
             this->draw(); 
         }
 };
