@@ -273,12 +273,19 @@ struct Scrolling_Image
     int tile_height;
     int tile_width;
 
+    int tiles_to_cache;
+
+    int canvas_width;
+    int canvas_height;
+
     int current_pos_x, current_pos_y;
 
     vector<Scr_Img*> tiles;
 
     Scrolling_Image()
             : tile_height(256), tile_width(256),
+              canvas_height(512), canvas_width(512),
+              tiles_to_cache(3),
               current_pos_x(0), current_pos_y(0)
     {
         canvas = gtk_layout_new(NULL, NULL);
@@ -291,8 +298,8 @@ struct Scrolling_Image
         Gtk_Helper::connect_raw(canvas, "button-press-event", &Scrolling_Image::_clicked, this);
         Gtk_Helper::connect_raw(canvas, "button-release-event", &Scrolling_Image::_released, this);
 
-        gtk_widget_set_usize(canvas, 256, 256);
-        gtk_widget_set_usize(canvas_window, 256, 256);
+        gtk_widget_set_usize(canvas, canvas_height, canvas_width);
+        gtk_widget_set_usize(canvas_window, canvas_height, canvas_width);
 
 
         update_things();
@@ -309,7 +316,6 @@ struct Scrolling_Image
         int min_x = current_pos_x - (current_pos_x % tile_width);
         int min_y = current_pos_y - (current_pos_y % tile_width);
 
-        unsigned tiles_to_cache = 3;
         int preload_x_start = min_x - tiles_to_cache * tile_width;
         int preload_y_start = min_y - tiles_to_cache *tile_height;
         int preload_x_end = min_x + tiles_to_cache *tile_width;
@@ -317,14 +323,12 @@ struct Scrolling_Image
 
         for (int x = preload_x_start; x < preload_x_end; x += tile_width) {
             for (int y = preload_y_start; y < preload_y_end; y += tile_height) {
-                cout << "Loading tile at " << x << "x" << y << endl;
                 auto img = mk_scr_img(x, y, tile_width, tile_height);
                 if (img) {
                     tiles.push_back(img);
 
                     int place_x = x - current_pos_x;
                     int place_y = y - current_pos_y;
-                    cout << "Put IMG at " << place_x << "x" << place_y << endl;
                     gtk_layout_put(GTK_LAYOUT(canvas), img->img, place_x, place_y);
                     gtk_widget_show(img->img);
                 }
