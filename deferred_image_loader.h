@@ -2,6 +2,8 @@
 #include <vector>
 #include <thread>
 
+#include <iostream>
+
 template <class Cache, class UI_Image> class Deferred_Image_Loader
 {
     Cache &cache;
@@ -21,11 +23,8 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
 
     virtual ~Deferred_Image_Loader()
     {
-        for (auto ex : executors_lst)
-        {
-            // TODO: Signal end
-            ex->join();
-        }
+        queue.set_signal_end();
+        for (auto ex : executors_lst) ex->join();
     }
 
     void process(UI_Image *img)
@@ -36,8 +35,11 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
     private:
     void executor()
     {
-        while (true) {
+        while (not queue.signaled_end()) {
             UI_Image* img = queue.pop();
+
+            // Are we being signaled to end?
+            if (not img) continue;
 
             // Get the img path and retrieve it from cache
             const string &path = img->get_path();
