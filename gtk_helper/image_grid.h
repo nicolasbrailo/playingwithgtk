@@ -17,12 +17,34 @@ class Image_Grid : Gtk_Object
                   drawable_widget(gtk_scrolled_window_new(NULL, NULL))
         {
             gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(drawable_widget), imgs_grid_widget);
+
+            Gtk_Helper::connect_raw(drawable_widget, "button-press-event", &Image_Grid::_clicked, this);
         }
 
         operator GtkWidget* (){ return this->drawable_widget; }
 
 
+    virtual unsigned get_row_px_spacing() const = 0;
+    virtual unsigned get_thumb_px_width() const = 0;
+    virtual unsigned get_thumb_px_height() const = 0;
+
     protected:
+        void clicked(unsigned x, unsigned y)
+        {
+            const unsigned thumb_cell_px_width = get_thumb_px_width() + get_row_px_spacing();
+            const unsigned thumb_cell_px_height = get_thumb_px_height() + get_row_px_spacing();
+
+            auto horiz_pos = x / thumb_cell_px_width;
+            auto vert_pos = y / thumb_cell_px_height;
+
+            cout << "pong " << horiz_pos << "'" << vert_pos << endl;
+        }
+
+        static void _clicked(void*, GdkEventButton* event, Image_Grid *self)
+        {
+            self->clicked(event->x, event->y);
+        }
+
         unsigned get_width() const
         {
             //return this->drawable_widget->allocation.height;

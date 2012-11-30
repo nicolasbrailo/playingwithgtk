@@ -37,12 +37,10 @@ Image_Cache::~Image_Cache()
 const Image_Cache::Mem_Image* Image_Cache::operator[] (const string &img_path)
 {
     // try to get the img from cache
-    {
-        // TODO: This is read only, do we really need a lock?
-        lock_guard<mutex> l(global_cache_lock);
-        if (cache[img_path] != NULL) return cache[img_path];
-    }
+    auto it = cache.find(img_path);
+    if (it != cache.end()) return it->second;
 
+    // Load img from filesystem
     auto img = load_image(img_path);
     {
         lock_guard<mutex> l(global_cache_lock);
