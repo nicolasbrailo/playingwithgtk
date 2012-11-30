@@ -201,7 +201,7 @@ struct App : public Path_Handler::Dir_Changed_CB
 #include "gtk_helper/button.h"
 #include "gtk_helper/hbox.h"
 
-int main(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
     Global_UI_Guard::init();
@@ -220,5 +220,134 @@ int main(int argc, char *argv[])
     gtk_main();
     return 0;
 }
+
+
+
+struct Scr_Img
+{
+    GtkWidget *img;
+    unsigned width, height;
+    int abs_x, abs_y;
+
+    Scr_Img(const string &path, int abs_x, int abs_y, int width, int height)
+        : img(gtk_image_new_from_file(path.c_str())),
+          width(width), height(height),
+          abs_x(abs_x), abs_y(abs_y)
+    {
+        gtk_widget_set_usize(img, width, height);
+    }
+};
+
+struct Scrolling_Image
+{
+    GtkWidget *canvas;
+    GtkWidget *canvas_window;
+
+    int tile_height;
+    int tile_width;
+
+    int current_pos_x, current_pos_y;
+
+    vector<Scr_Img*> tiles;
+
+    Scrolling_Image()
+            : tile_height(256), tile_width(256),
+              current_pos_x(0), current_pos_y(0)
+    {
+        canvas = gtk_layout_new(NULL, NULL);
+        canvas_window = gtk_scrolled_window_new(NULL, NULL);
+        gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), canvas);
+
+        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_RELEASE_MASK);
+        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_PRESS_MASK);
+
+        Gtk_Helper::connect_raw(canvas, "button-press-event", &Scrolling_Image::_clicked, this);
+        Gtk_Helper::connect_raw(canvas, "button-release-event", &Scrolling_Image::_released, this);
+
+        gtk_widget_set_usize(canvas, 512, 512);
+        gtk_widget_set_usize(canvas_window, 512, 512);
+
+        for (int x_tile_pos = -600; x_tile_pos < 600; x_tile_pos += tile_width)
+        {
+            for (int y_tile_pos = -600; y_tile_pos < 600; y_tile_pos += tile_height)
+            {
+                auto img = new Scr_Img("./empty.png", x_tile_pos, y_tile_pos, tile_width, tile_height);
+                gtk_layout_put(GTK_LAYOUT(canvas), img->img, -1000, -1000);
+                tiles.push_back(img);
+            }
+        }
+
+        foo();
+    }
+
+    int click_start_x, click_start_y;
+    void clicked(int x, int y) { click_start_x = x; click_start_y = y; }
+    void released(int x, int y) {
+        int dx = x - click_start_x;
+        int dy = y - click_start_y; 
+        current_pos_x += dx;
+        current_pos_y += dy;
+        foo();
+    }
+
+    static void _clicked(void*, GdkEventButton* event, Scrolling_Image *self)
+        { self->clicked(event->x, event->y); }
+    static void _released(void*, GdkEventButton* event, Scrolling_Image *self)
+        { self->released(event->x, event->y); }
+
+    void foo()
+    {
+        int current_pos_end_x = current_pos_x + 400;
+        int current_pos_end_y = current_pos_y + 400;
+
+        for (auto tile : tiles)
+        {
+            bool in_x_range = tile->abs_x > current_pos_x or tile->abs_x < current_pos_end_x;
+            bool in_y_range = tile->abs_y > current_pos_y or tile->abs_y < current_pos_end_y;
+
+            if (in_x_range and in_y_range)
+            {
+                int x_tile_pos = tile->abs_x - current_pos_x;
+                int y_tile_pos = tile->abs_y - current_pos_y;
+                gtk_layout_move(GTK_LAYOUT(canvas), tile->img, x_tile_pos, y_tile_pos);
+            }
+        }
+    }
+};
+
+
+int main(int argc, char *argv[])
+{
+    gtk_init(&argc, &argv);
+    Global_UI_Guard::init();
+    Gtk_Main_Window wnd;
+
+    Scrolling_Image img;
+
+    wnd.add_widget(img.canvas_window);
+    wnd.show();
+
+    Global_UI_Guard ui_guard;
+    gtk_main();
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
