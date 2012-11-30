@@ -268,6 +268,7 @@ struct Scrolling_Image
         gtk_widget_set_usize(canvas_window, 512, 512);
 
 
+        http://tile.openstreetmap.org/7/64/43.png
         auto img1 = new Scr_Img("./map/img1.png", 0,   0, tile_width, tile_height);
         auto img2 = new Scr_Img("./map/img2.png", 256, 0, tile_width, tile_height);
         auto img3 = new Scr_Img("./map/img3.png", 512, 0, tile_width, tile_height);
