@@ -222,12 +222,6 @@ int main2(int argc, char *argv[])
 }
 
 #include "wget.h"
-int main()
-{
-    wget("http://tile.openstreetmap.org/7/64/43.png", "./foo.png");
-    return 0;
-}
-
 
 
 
@@ -246,18 +240,21 @@ struct Scr_Img
     }
 };
 
+#include <sstream>
 const string get_coord_path(int abs_x, int abs_y)
 {
-    if (abs_x == 0   and abs_y == 0  ) return "./map/img1.png";
-    if (abs_x == 256 and abs_y == 0  ) return "./map/img2.png";
-    if (abs_x == 512 and abs_y == 0  ) return "./map/img3.png";
-    if (abs_x == 0   and abs_y == 256) return "./map/img4.png";
-    if (abs_x == 256 and abs_y == 256) return "./map/img5.png";
-    if (abs_x == 512 and abs_y == 256) return "./map/img6.png";
-    if (abs_x == 0   and abs_y == 512) return "./map/img7.png";
-    if (abs_x == 256 and abs_y == 512) return "./map/img8.png";
-    if (abs_x == 512 and abs_y == 512) return "./map/img9.png";
-    return "";
+    // Start centered near Ams
+    int tile_x = 64 + (abs_x / 256);
+    int tile_y = 43 + (abs_y / 256);
+    stringstream urlss, fnamess;
+    urlss << "http://tile.openstreetmap.org/7/" << tile_x << "/" << tile_y << ".png";
+    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+    string url = urlss.str();
+    string fname = fnamess.str();
+    cout << "Loading " << url << endl;
+
+    wget(url, fname);
+    return fname;
 }
 
 Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
@@ -298,38 +295,40 @@ struct Scrolling_Image
         gtk_widget_set_usize(canvas_window, 256, 256);
 
 
-        // http://tile.openstreetmap.org/7/64/43.png
-        auto img1 = new Scr_Img("./map/img1.png", 0,   0, tile_width, tile_height);
-        auto img2 = new Scr_Img("./map/img2.png", 256, 0, tile_width, tile_height);
-        auto img3 = new Scr_Img("./map/img3.png", 512, 0, tile_width, tile_height);
-        auto img4 = new Scr_Img("./map/img4.png", 0,   256, tile_width, tile_height);
-        auto img5 = new Scr_Img("./map/img5.png", 256, 256, tile_width, tile_height);
-        auto img6 = new Scr_Img("./map/img6.png", 512, 256, tile_width, tile_height);
-        auto img7 = new Scr_Img("./map/img7.png", 0,   512, tile_width, tile_height);
-        auto img8 = new Scr_Img("./map/img8.png", 256, 512, tile_width, tile_height);
-        auto img9 = new Scr_Img("./map/img9.png", 512, 512, tile_width, tile_height);
+        update_things();
+    }
 
-        tiles.push_back(img1);
-        tiles.push_back(img2);
-        tiles.push_back(img3);
-        tiles.push_back(img4);
-        tiles.push_back(img5);
-        tiles.push_back(img6);
-        tiles.push_back(img7);
-        tiles.push_back(img8);
-        tiles.push_back(img9);
+    void update_things()
+    {
+        for (auto tile : tiles) {
+            gtk_widget_destroy(GTK_WIDGET(tile->img));
+            delete tile;
+        }
+        tiles.clear();
 
-        gtk_layout_put(GTK_LAYOUT(canvas), img1->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img2->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img3->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img4->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img5->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img6->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img7->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img8->img, -1000, -1000);
-        gtk_layout_put(GTK_LAYOUT(canvas), img9->img, -1000, -1000);
+        int min_x = current_pos_x - (current_pos_x % tile_width);
+        int min_y = current_pos_y - (current_pos_y % tile_width);
 
-        foo();
+        int preload_x_start = min_x - 2*tile_width;
+        int preload_y_start = min_y - 2*tile_height;
+        int preload_x_end = min_x + 2*tile_width;
+        int preload_y_end = min_y + 2*tile_height;
+
+        for (int x = preload_x_start; x < preload_x_end; x += tile_width) {
+            for (int y = preload_y_start; y < preload_y_end; y += tile_height) {
+                cout << "Loading tile at " << x << "x" << y << endl;
+                auto img = mk_scr_img(x, y, tile_width, tile_height);
+                if (img) {
+                    tiles.push_back(img);
+
+                    int place_x = x - current_pos_x;
+                    int place_y = y - current_pos_y;
+                    cout << "Put IMG at " << place_x << "x" << place_y << endl;
+                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, place_x, place_y);
+                    gtk_widget_show(img->img);
+                }
+            }
+        }
     }
 
     int click_start_x, click_start_y;
@@ -339,7 +338,7 @@ struct Scrolling_Image
         int dy = y - click_start_y; 
         current_pos_x -= dx;
         current_pos_y -= dy;
-        foo();
+        update_things();
     }
 
     static void _clicked(void*, GdkEventButton* event, Scrolling_Image *self)
@@ -368,7 +367,7 @@ struct Scrolling_Image
 };
 
 
-int main3(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
     Global_UI_Guard::init();
