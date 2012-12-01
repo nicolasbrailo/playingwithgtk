@@ -244,8 +244,8 @@ struct Scr_Img
 const string get_coord_path(int abs_x, int abs_y)
 {
     // Start centered near Ams
-    int tile_x = 64 + (abs_x / 256);
-    int tile_y = 43 + (abs_y / 256);
+    int tile_x = 64 + abs_x;
+    int tile_y = 43 + abs_y;
     stringstream urlss, fnamess;
     urlss << "http://tile.openstreetmap.org/7/" << tile_x << "/" << tile_y << ".png";
     fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
@@ -257,10 +257,19 @@ const string get_coord_path(int abs_x, int abs_y)
     return fname;
 }
 
+map<long, string> map_tile_cache;
+
 Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
 {
+    abs_x = abs_x / 256;
+    abs_y = abs_y / 256;
+    auto it = map_tile_cache.find(abs_x * 1000 + abs_y);
+    if (it != map_tile_cache.end()) return new Scr_Img(it->second, abs_x, abs_y, width, height);
+
     const string& path = get_coord_path(abs_x, abs_y);
     if (path == "") return NULL;
+
+    map_tile_cache[abs_x * 1000 + abs_y] = path;
     return new Scr_Img(path, abs_x, abs_y, width, height);
 }
 
