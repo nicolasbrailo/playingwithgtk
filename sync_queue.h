@@ -38,8 +38,9 @@ class Sync_Queue
     T pop()
     {
         {
-            auto cond = [&lst, &signal_end]() -> bool {
-                            return (not lst.empty()) or signal_end;
+            auto self = this;
+            auto cond = [&self]() -> bool {
+                            return (not self->lst.empty()) or self->signal_end;
                         };
 
             std::unique_lock<mutex> l(m);
