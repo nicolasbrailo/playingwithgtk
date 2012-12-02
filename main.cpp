@@ -276,6 +276,20 @@ Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
 
 struct Scrolling_Image
 {
+    struct Point {
+        int x, y;
+        Point(int x, int y) : x(x), y(y) {}
+        const Point& operator -= (const Point &p) { x -= p.x; y -= p.y; return *this; }
+        const Point& operator += (const Point &p) { x += p.x; y += p.y; return *this; }
+        Point operator + (const Point &p) const { return Point(x + p.x, y + p.y); }
+        Point operator - (const Point &p) const { return Point(x - p.x, y - p.y); }
+        Point operator % (const Point &p) const { return Point(x % p.x, y % p.y); }
+        Point operator + (int n) const { return Point(x + n, y + n); }
+        Point operator - (int n) const { return Point(x - n, y - n); }
+        Point operator * (int n) const { return Point(x * n, y * n); }
+        Point operator % (int n) const { return Point(x % n, y % n); }
+    };
+
     GtkWidget *canvas;
     GtkWidget *canvas_window;
 
@@ -287,7 +301,7 @@ struct Scrolling_Image
     int canvas_width;
     int canvas_height;
 
-    int current_pos_x, current_pos_y;
+    Point current_pos;
 
     vector<Scr_Img*> tiles;
 
@@ -295,7 +309,7 @@ struct Scrolling_Image
             : tile_height(256), tile_width(256),
               canvas_height(512), canvas_width(300),
               tiles_to_cache(3),
-              current_pos_x(0), current_pos_y(0)
+              current_pos(0, 0)
     {
         canvas = gtk_layout_new(NULL, NULL);
         canvas_window = gtk_scrolled_window_new(NULL, NULL);
@@ -322,23 +336,27 @@ struct Scrolling_Image
         }
         tiles.clear();
 
-        int min_x = current_pos_x - (current_pos_x % tile_width);
-        int min_y = current_pos_y - (current_pos_y % tile_width);
+        // Moding with the tile box, we can align the current pos to a grid
+        // determined by the tile width and height; eg if each tile is 10x20
+        // and curr pos is 35x42, then curr_pos is 5x2 inside a tile and the
+        // closest point in the grid determined by the tiles' size will be
+        // 30x40. Then, grid_point = curr_pos - (curr_pos % tile size)
+        Point tile_area(tile_width, tile_height);
+        Point curr_grid_point = current_pos - (current_pos % tile_area);
 
-        int preload_x_start = min_x - tiles_to_cache * tile_width;
-        int preload_y_start = min_y - tiles_to_cache *tile_height;
-        int preload_x_end = min_x + tiles_to_cache *tile_width;
-        int preload_y_end = min_y + tiles_to_cache *tile_height;
+        // We'll start preloading N tiles - and + from the current
+        // grid point
+        Point preload_start = curr_grid_point - (tile_area * tiles_to_cache);
+        Point preload_end = curr_grid_point + (tile_area * tiles_to_cache);
 
-        for (int x = preload_x_start; x < preload_x_end; x += tile_width) {
-            for (int y = preload_y_start; y < preload_y_end; y += tile_height) {
+        for (int x = preload_start.x; x < preload_end.x; x += tile_width) {
+            for (int y = preload_start.y; y < preload_end.y; y += tile_height) {
                 auto img = mk_scr_img(x, y, tile_width, tile_height);
                 if (img) {
                     tiles.push_back(img);
 
-                    int place_x = x - current_pos_x;
-                    int place_y = y - current_pos_y;
-                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, place_x, place_y);
+                    Point place = Point(x, y) - current_pos;
+                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, place.x, place.y);
                     gtk_widget_show(img->img);
                 }
             }
@@ -350,8 +368,7 @@ struct Scrolling_Image
     void released(int x, int y) {
         int dx = x - click_start_x;
         int dy = y - click_start_y; 
-        current_pos_x -= dx;
-        current_pos_y -= dy;
+        current_pos -= Point(dx, dy);
         update_things();
     }
 
