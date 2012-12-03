@@ -257,6 +257,23 @@ const string get_coord_path(int abs_x, int abs_y)
     return fname;
 }
 
+const string get_coord_path2(int abs_x, int abs_y)
+{
+    // Start centered near Ams
+    int tile_x = 66 + abs_x;
+    int tile_y = 60 + abs_y;
+    stringstream urlss, fnamess;
+    urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << tile_x << "/" << tile_y << ".jpg";
+    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+    string url = urlss.str();
+    string fname = fnamess.str();
+    cout << "Loading " << url << endl;
+
+    wget(url, fname);
+    return fname;
+}
+
+
 map<long, string> map_tile_cache;
 
 Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
@@ -309,7 +326,8 @@ struct Scrolling_Image
             : tile_height(256), tile_width(256),
               canvas_height(512), canvas_width(300),
               tiles_to_cache(3),
-              current_pos(0, 0)
+              current_pos(0, 0),
+              mouse_pressed(false)
     {
         canvas = gtk_layout_new(NULL, NULL);
         canvas_window = gtk_scrolled_window_new(NULL, NULL);
@@ -317,9 +335,11 @@ struct Scrolling_Image
 
         gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_RELEASE_MASK);
         gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_PRESS_MASK);
+        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_POINTER_MOTION_MASK);
 
         Gtk_Helper::connect_raw(canvas, "button-press-event", &Scrolling_Image::_clicked, this);
         Gtk_Helper::connect_raw(canvas, "button-release-event", &Scrolling_Image::_released, this);
+        Gtk_Helper::connect_raw(canvas, "motion_notify_event", &Scrolling_Image::_mouse_moved, this);
 
         gtk_widget_set_usize(canvas, canvas_height, canvas_width);
         gtk_widget_set_usize(canvas_window, canvas_height, canvas_width);
@@ -349,26 +369,61 @@ struct Scrolling_Image
         Point preload_start = curr_grid_point - (tile_area * tiles_to_cache);
         Point preload_end = curr_grid_point + (tile_area * tiles_to_cache);
 
+        // Start going through every square in the grid and get a tile for it
         for (int x = preload_start.x; x < preload_end.x; x += tile_width) {
             for (int y = preload_start.y; y < preload_end.y; y += tile_height) {
+                // Get the tile for the square x,y
                 auto img = mk_scr_img(x, y, tile_width, tile_height);
                 if (img) {
                     tiles.push_back(img);
 
-                    Point place = Point(x, y) - current_pos;
-                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, place.x, place.y);
+                    // Current position of the grid square we're rendering
+                    Point grid_square(x, y);
+
+                    // The current_pos and the grid pos are virtual measures
+                    // not related to the currently on-screen tiles: the diff
+                    // between the grid square and the current pos will give us
+                    // the physical offset in which to place the image. Eg: If
+                    // we are in position (42, 24) and we're loading the tile at
+                    // (30, 10) then we should render the tile at (12, 14)
+                    Point phys_offset = grid_square - current_pos;
+                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, phys_offset.x, phys_offset.y);
                     gtk_widget_show(img->img);
                 }
             }
         }
     }
 
+    bool mouse_pressed;
     int click_start_x, click_start_y;
-    void clicked(int x, int y) { click_start_x = x; click_start_y = y; }
-    void released(int x, int y) {
-        int dx = x - click_start_x;
-        int dy = y - click_start_y; 
+
+    bool mouse_moved(int x, int y) {
+        if (not mouse_pressed) return GDK_SHOULD_CONTINUE_PROCESSING;
+        auto dx = x - click_start_x;
+        auto dy = y - click_start_y;
+
+        static const int threshold = 5;
+        if (dx < threshold and dx > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
+        if (dy < threshold and dy > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
+
+        cout << "Correcting curr pos by " << dx << "x" << dy << endl;
         current_pos -= Point(dx, dy);
+        click_start_x = x;
+        click_start_y = y;
+        // Should we lock new tiles requesting here?
+        cout << "Corrected. Re-rendering" << endl;
+        update_things();
+        cout << "Done. Next evt" << endl;
+
+        return GDK_SHOULD_STOP_PROCESSING;
+    }
+    void clicked(int x, int y) {
+        mouse_pressed = true;
+        click_start_x = x;
+        click_start_y = y;
+    }
+    void released(int, int) {
+        mouse_pressed = false;
         update_things();
     }
 
@@ -376,6 +431,8 @@ struct Scrolling_Image
         { self->clicked(event->x, event->y); }
     static void _released(void*, GdkEventButton* event, Scrolling_Image *self)
         { self->released(event->x, event->y); }
+    static bool _mouse_moved(void*, GdkEventButton* event, Scrolling_Image *self)
+        { return self->mouse_moved(event->x, event->y); }
 
 };
 
