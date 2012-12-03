@@ -351,10 +351,11 @@ struct Scrolling_Image
     void update_things()
     {
         for (auto tile : tiles) {
-            gtk_widget_destroy(GTK_WIDGET(tile->img));
-            delete tile;
+            gtk_layout_move(GTK_LAYOUT(canvas), tile->img, -1000, -1000);
+            //gtk_widget_destroy(GTK_WIDGET(tile->img));
+            //delete tile;
         }
-        tiles.clear();
+        //tiles.clear();
 
         // Moding with the tile box, we can align the current pos to a grid
         // determined by the tile width and height; eg if each tile is 10x20
@@ -372,27 +373,52 @@ struct Scrolling_Image
         // Start going through every square in the grid and get a tile for it
         for (int x = preload_start.x; x < preload_end.x; x += tile_width) {
             for (int y = preload_start.y; y < preload_end.y; y += tile_height) {
-                // Get the tile for the square x,y
-                auto img = mk_scr_img(x, y, tile_width, tile_height);
-                if (img) {
-                    tiles.push_back(img);
+                // Current position of the grid square we're rendering
+                Point grid_square(x, y);
 
-                    // Current position of the grid square we're rendering
-                    Point grid_square(x, y);
+                // The current_pos and the grid pos are virtual measures
+                // not related to the currently on-screen tiles: the diff
+                // between the grid square and the current pos will give us
+                // the physical offset in which to place the image. Eg: If
+                // we are in position (42, 24) and we're loading the tile at
+                // (30, 10) then we should render the tile at (12, 14)
+                Point phys_offset = grid_square - current_pos;
 
-                    // The current_pos and the grid pos are virtual measures
-                    // not related to the currently on-screen tiles: the diff
-                    // between the grid square and the current pos will give us
-                    // the physical offset in which to place the image. Eg: If
-                    // we are in position (42, 24) and we're loading the tile at
-                    // (30, 10) then we should render the tile at (12, 14)
-                    Point phys_offset = grid_square - current_pos;
-                    gtk_layout_put(GTK_LAYOUT(canvas), img->img, phys_offset.x, phys_offset.y);
-                    gtk_widget_show(img->img);
-                }
+                // The coords for the tile in the grid
+                Point tile_coords(x, y);
+
+                // Take care of the real rendering
+                this->render_tile(phys_offset, tile_coords);
             }
         }
     }
+
+    map<long, Scr_Img*> tiles_map_cache_foo;
+    long foobar(const Point &pt) { return (pt.x * 10000) + pt.y; }
+    void render_tile(const Point &tile_render_point, const Point &tile_coords)
+    {
+        auto it = tiles_map_cache_foo.find(foobar(tile_coords));
+        if (it != tiles_map_cache_foo.end())
+        {
+            auto img = it->second;
+            gtk_layout_move(GTK_LAYOUT(canvas), img->img, tile_render_point.x, tile_render_point.y);
+            gtk_widget_show(img->img);
+            cout << "Moved tile" << endl;
+
+        } else {
+            // Get the tile for the square x,y
+            auto img = mk_scr_img(tile_coords.x, tile_coords.y, tile_width, tile_height);
+            if (img) {
+                tiles.push_back(img);
+                tiles_map_cache_foo[foobar(tile_render_point)] = img;
+
+                gtk_layout_put(GTK_LAYOUT(canvas), img->img, tile_render_point.x, tile_render_point.y);
+                gtk_widget_show(img->img);
+                cout << "newd tile" << endl;
+            }
+        }
+    }
+
 
     bool mouse_pressed;
     int click_start_x, click_start_y;
@@ -406,14 +432,11 @@ struct Scrolling_Image
         if (dx < threshold and dx > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
         if (dy < threshold and dy > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
 
-        cout << "Correcting curr pos by " << dx << "x" << dy << endl;
         current_pos -= Point(dx, dy);
         click_start_x = x;
         click_start_y = y;
         // Should we lock new tiles requesting here?
-        cout << "Corrected. Re-rendering" << endl;
         update_things();
-        cout << "Done. Next evt" << endl;
 
         return GDK_SHOULD_STOP_PROCESSING;
     }
