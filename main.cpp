@@ -228,41 +228,36 @@ int main2(int argc, char *argv[])
 struct Scr_Img
 {
     GtkWidget *img;
-    int abs_x, abs_y;
+    int coords_x, coords_y;
 
-    Scr_Img(const string &path, int abs_x, int abs_y)
+    Scr_Img(const string &path, int coords_x, int coords_y)
         : img(gtk_image_new_from_file(path.c_str())),
-          abs_x(abs_x), abs_y(abs_y)
+          coords_x(coords_x), coords_y(coords_y)
     {
     }
 };
 
 #include <sstream>
 
-map<long, string> map_tile_cache;
-
 struct Map_Tile_Generator {
-    static Scr_Img* generate_tile(int abs_x, int abs_y)
+    static Scr_Img* generate_tile(int coords_x, int coords_y)
     {
-        auto it = map_tile_cache.find(abs_x * 1000 + abs_y);
-        if (it != map_tile_cache.end()) return new Scr_Img(it->second, abs_x, abs_y);
-
-        const string& path = get_coord_path(abs_x, abs_y);
+        const string& path = get_coord_path(coords_x, coords_y);
+        // TODO: Check if path already exists
         if (path == "") return NULL;
-
-        map_tile_cache[abs_x * 1000 + abs_y] = path;
-        return new Scr_Img(path, abs_x, abs_y);
+        return new Scr_Img(path, coords_x, coords_y);
     }
 
-    static const string get_coord_path(int abs_x, int abs_y)
+    static const string get_coord_path(int coords_x, int coords_y)
     {
-        typedef Map_Quest Map;
+        typedef Open_Street_Map Map;
 
-        int tile_x = Map::tile_offset_x + abs_x;
-        int tile_y = Map::tile_offset_y + abs_y;
+        int tile_x = Map::tile_offset_x + coords_x;
+        int tile_y = Map::tile_offset_y + coords_y;
         auto url = Map::get_tile_url(tile_x, tile_y);
         auto fname = Map::get_tile_fname(tile_x, tile_y);
 
+        cout << "Getting " << url << " into " << fname << endl;
         wget(url, fname);
         return fname;
     }
@@ -343,7 +338,7 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
     GtkWidget *canvas_window;
 
     int tile_height, tile_width;
-    int tiles_to_cache;
+    int tiles_to_prefetch;
 
     Point current_pos;
 
@@ -353,7 +348,7 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 
     Scrolling_Image(unsigned default_height, unsigned default_width)
             : Mouse_Draggable::Mouse_Draggable(gtk_layout_new(NULL, NULL)),
-              tile_height(256), tile_width(256), tiles_to_cache(3),
+              tile_height(256), tile_width(256), tiles_to_prefetch(3),
               current_pos(0, 0)
     {
         canvas_window = gtk_scrolled_window_new(NULL, NULL);
@@ -369,8 +364,8 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
     {
         for (auto tile : tiles) {
             gtk_layout_move(GTK_LAYOUT(this->ui_widget()), tile->img, -1000, -1000);
-            //gtk_widget_destroy(GTK_WIDGET(tile->img));
-            //delete tile;
+        //    //gtk_widget_destroy(GTK_WIDGET(tile->img));
+        //    //delete tile;
         }
         //tiles.clear();
 
@@ -384,8 +379,8 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 
         // We'll start preloading N tiles - and + from the current
         // grid point
-        Point preload_start = curr_grid_point - (tile_area * tiles_to_cache);
-        Point preload_end = curr_grid_point + (tile_area * tiles_to_cache);
+        Point preload_start = curr_grid_point - (tile_area * tiles_to_prefetch);
+        Point preload_end = curr_grid_point + (tile_area * tiles_to_prefetch);
 
         // Start going through every square in the grid and get a tile for it
         for (int x = preload_start.x; x < preload_end.x; x += tile_width) {
@@ -402,15 +397,34 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
                 Point phys_offset = grid_square - current_pos;
 
                 // The coords for the tile in the grid
-                Point tile_coords(x, y);
+                Point tile_coords(x / tile_width, y / tile_height);
 
                 // Take care of the real rendering
                 render_tile(phys_offset, tile_coords);
             }
         }
+
+
+        int min_grid_coord_x = curr_grid_point.x - 5;
+        int min_grid_coord_y = curr_grid_point.y - 5;
+        int max_grid_coord_x = curr_grid_point.x + 5;
+        int max_grid_coord_y = curr_grid_point.y + 5;
+
+        for (auto tile : all_known_tiles)
+        {
+            if (tile->coords_x > min_grid_coord_x and
+                tile->coords_x < max_grid_coord_x) return;
+
+            if (tile->coords_y > min_grid_coord_y and
+                tile->coords_y < max_grid_coord_y) return;
+
+            cout << "I should delete tile at " << tile->coords_y << "x" << tile->coords_x << endl;
+        }
     }
 
+
     map<Point, UI_Tile_Image*> tiles_cache;
+    vector<UI_Tile_Image*> all_known_tiles;
     void render_tile(const Point &tile_render_point, const Point &tile_coords)
     {
         auto it = tiles_cache.find(tile_coords);
@@ -422,12 +436,11 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 
         } else {
             // Get the tile for the square x,y
-            int mapped_coords_x = tile_coords.x / tile_width;
-            int mapped_coords_y = tile_coords.y / tile_width;
-            auto img = Tile_Generator::generate_tile(mapped_coords_x, mapped_coords_y);
+            auto img = Tile_Generator::generate_tile(tile_coords.x, tile_coords.y);
             if (img) {
                 tiles.push_back(img);
-                tiles_cache[tile_render_point] = img;
+                tiles_cache[tile_coords] = img;
+                all_known_tiles.push_back(img);
 
                 gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
                 gtk_widget_show(img->img);
