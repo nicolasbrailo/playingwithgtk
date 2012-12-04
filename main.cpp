@@ -241,7 +241,7 @@ struct Scr_Img
 };
 
 #include <sstream>
-const string get_coord_path(int abs_x, int abs_y)
+const string get_coord_path2(int abs_x, int abs_y)
 {
     // Start centered near Ams
     int tile_x = 64 + abs_x;
@@ -257,13 +257,29 @@ const string get_coord_path(int abs_x, int abs_y)
     return fname;
 }
 
-const string get_coord_path2(int abs_x, int abs_y)
+const string get_coord_path3(int abs_x, int abs_y)
 {
     // Start centered near Ams
-    int tile_x = 66 + abs_x;
-    int tile_y = 60 + abs_y;
+    int tile_x = 64 + abs_x;
+    int tile_y = 41 + abs_y;
     stringstream urlss, fnamess;
     urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << tile_x << "/" << tile_y << ".jpg";
+    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+    string url = urlss.str();
+    string fname = fnamess.str();
+    cout << "Loading " << url << endl;
+
+    wget(url, fname);
+    return fname;
+}
+
+const string get_coord_path(int abs_x, int abs_y)
+{
+    // Start centered near Ams
+    int tile_x = 164 + abs_x;
+    int tile_y = 161 + abs_y;
+    stringstream urlss, fnamess;
+    urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/08/" << tile_x << "/" << tile_y << ".jpg";
     fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
     string url = urlss.str();
     string fname = fnamess.str();
@@ -291,7 +307,9 @@ Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
 }
 
 
-struct Scrolling_Image
+#include "gtk_helper/mouse_draggable.h"
+
+class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 {
     struct Point {
         int x, y;
@@ -307,51 +325,44 @@ struct Scrolling_Image
         Point operator % (int n) const { return Point(x % n, y % n); }
     };
 
-    GtkWidget *canvas;
+    public:
+
+    void mouse_dragged(int dx, int dy)
+    {
+        current_pos -= Point(dx, dy);
+        this->update_things();
+    }
+
     GtkWidget *canvas_window;
 
-    int tile_height;
-    int tile_width;
-
+    int tile_height, tile_width;
     int tiles_to_cache;
 
-    int canvas_width;
-    int canvas_height;
-
+    int canvas_height, canvas_width;
     Point current_pos;
 
     vector<Scr_Img*> tiles;
 
     Scrolling_Image()
-            : tile_height(256), tile_width(256),
+            : Mouse_Draggable::Mouse_Draggable(gtk_layout_new(NULL, NULL)),
+              tile_height(256), tile_width(256), tiles_to_cache(3),
               canvas_height(512), canvas_width(300),
-              tiles_to_cache(3),
-              current_pos(0, 0),
-              mouse_pressed(false)
+              current_pos(0, 0)
     {
-        canvas = gtk_layout_new(NULL, NULL);
         canvas_window = gtk_scrolled_window_new(NULL, NULL);
-        gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), canvas);
+        gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), this->ui_widget());
 
-        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_RELEASE_MASK);
-        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_BUTTON_PRESS_MASK);
-        gtk_widget_add_events(GTK_WIDGET(canvas), GDK_POINTER_MOTION_MASK);
-
-        Gtk_Helper::connect_raw(canvas, "button-press-event", &Scrolling_Image::_clicked, this);
-        Gtk_Helper::connect_raw(canvas, "button-release-event", &Scrolling_Image::_released, this);
-        Gtk_Helper::connect_raw(canvas, "motion_notify_event", &Scrolling_Image::_mouse_moved, this);
-
-        gtk_widget_set_usize(canvas, canvas_height, canvas_width);
+        // TODO: Needed?
+        gtk_widget_set_usize(this->ui_widget(), canvas_height, canvas_width);
         gtk_widget_set_usize(canvas_window, canvas_height, canvas_width);
 
-
-        update_things();
+        this->update_things();
     }
 
     void update_things()
     {
         for (auto tile : tiles) {
-            gtk_layout_move(GTK_LAYOUT(canvas), tile->img, -1000, -1000);
+            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), tile->img, -1000, -1000);
             //gtk_widget_destroy(GTK_WIDGET(tile->img));
             //delete tile;
         }
@@ -394,16 +405,16 @@ struct Scrolling_Image
     }
 
     map<long, Scr_Img*> tiles_map_cache_foo;
-    long foobar(const Point &pt) { return (pt.x * 10000) + pt.y; }
     void render_tile(const Point &tile_render_point, const Point &tile_coords)
     {
+        auto foobar = [](const Point &pt) -> long { return (pt.x * 10000) + pt.y; };
+
         auto it = tiles_map_cache_foo.find(foobar(tile_coords));
         if (it != tiles_map_cache_foo.end())
         {
             auto img = it->second;
-            gtk_layout_move(GTK_LAYOUT(canvas), img->img, tile_render_point.x, tile_render_point.y);
+            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
             gtk_widget_show(img->img);
-            cout << "Moved tile" << endl;
 
         } else {
             // Get the tile for the square x,y
@@ -412,51 +423,11 @@ struct Scrolling_Image
                 tiles.push_back(img);
                 tiles_map_cache_foo[foobar(tile_render_point)] = img;
 
-                gtk_layout_put(GTK_LAYOUT(canvas), img->img, tile_render_point.x, tile_render_point.y);
+                gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
                 gtk_widget_show(img->img);
-                cout << "newd tile" << endl;
             }
         }
     }
-
-
-    bool mouse_pressed;
-    int click_start_x, click_start_y;
-
-    bool mouse_moved(int x, int y) {
-        if (not mouse_pressed) return GDK_SHOULD_CONTINUE_PROCESSING;
-        auto dx = x - click_start_x;
-        auto dy = y - click_start_y;
-
-        static const int threshold = 5;
-        if (dx < threshold and dx > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
-        if (dy < threshold and dy > -threshold) return GDK_SHOULD_CONTINUE_PROCESSING;
-
-        current_pos -= Point(dx, dy);
-        click_start_x = x;
-        click_start_y = y;
-        // Should we lock new tiles requesting here?
-        update_things();
-
-        return GDK_SHOULD_STOP_PROCESSING;
-    }
-    void clicked(int x, int y) {
-        mouse_pressed = true;
-        click_start_x = x;
-        click_start_y = y;
-    }
-    void released(int, int) {
-        mouse_pressed = false;
-        update_things();
-    }
-
-    static void _clicked(void*, GdkEventButton* event, Scrolling_Image *self)
-        { self->clicked(event->x, event->y); }
-    static void _released(void*, GdkEventButton* event, Scrolling_Image *self)
-        { self->released(event->x, event->y); }
-    static bool _mouse_moved(void*, GdkEventButton* event, Scrolling_Image *self)
-        { return self->mouse_moved(event->x, event->y); }
-
 };
 
 
