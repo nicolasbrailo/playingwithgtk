@@ -375,18 +375,25 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         // closest point in the grid determined by the tiles' size will be
         // 30x40. Then, grid_point = curr_pos - (curr_pos % tile size)
         Point tile_area(tile_width, tile_height);
-        Point curr_grid_point = current_pos - (current_pos % tile_area);
+        Point upper_left_tile_pos = current_pos - (current_pos % tile_area);
+
+        // The coordinates of the tile in the upper left corner of the grid
+        // these coords are not relative to the control, they are relative to
+        // the map itself. In the example above we would be rendering the tile
+        // at coords 3x2 (upper_left_tile_pos = 30x40, tile_area = 10x20)
+        Point upper_left_tile_coords = Point(upper_left_tile_pos.x / tile_width,
+                                           upper_left_tile_pos.y / tile_height);
 
         // We'll start preloading N tiles - and + from the current
         // grid point
-        Point preload_start = curr_grid_point - (tile_area * tiles_to_prefetch);
-        Point preload_end = curr_grid_point + (tile_area * tiles_to_prefetch);
+        Point preload_start = upper_left_tile_pos - (tile_area * tiles_to_prefetch);
+        Point preload_end = upper_left_tile_pos + (tile_area * tiles_to_prefetch);
 
         // Start going through every square in the grid and get a tile for it
         for (int x = preload_start.x; x < preload_end.x; x += tile_width) {
             for (int y = preload_start.y; y < preload_end.y; y += tile_height) {
                 // Current position of the grid square we're rendering
-                Point grid_square(x, y);
+                Point rendering_tile_grid_pos(x, y);
 
                 // The current_pos and the grid pos are virtual measures
                 // not related to the currently on-screen tiles: the diff
@@ -394,7 +401,7 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
                 // the physical offset in which to place the image. Eg: If
                 // we are in position (42, 24) and we're loading the tile at
                 // (30, 10) then we should render the tile at (12, 14)
-                Point phys_offset = grid_square - current_pos;
+                Point phys_offset = rendering_tile_grid_pos - current_pos;
 
                 // The coords for the tile in the grid
                 Point tile_coords(x / tile_width, y / tile_height);
@@ -405,10 +412,10 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         }
 
 
-        int min_grid_coord_x = curr_grid_point.x - 5;
-        int min_grid_coord_y = curr_grid_point.y - 5;
-        int max_grid_coord_x = curr_grid_point.x + 5;
-        int max_grid_coord_y = curr_grid_point.y + 5;
+        int min_grid_coord_x = upper_left_tile_pos.x - 5;
+        int min_grid_coord_y = upper_left_tile_pos.y - 5;
+        int max_grid_coord_x = upper_left_tile_pos.x + 5;
+        int max_grid_coord_y = upper_left_tile_pos.y + 5;
 
         for (auto tile : all_known_tiles)
         {
