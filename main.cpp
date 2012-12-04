@@ -228,92 +228,98 @@ int main2(int argc, char *argv[])
 struct Scr_Img
 {
     GtkWidget *img;
-    unsigned width, height;
     int abs_x, abs_y;
 
-    Scr_Img(const string &path, int abs_x, int abs_y, int width, int height)
+    Scr_Img(const string &path, int abs_x, int abs_y)
         : img(gtk_image_new_from_file(path.c_str())),
-          width(width), height(height),
           abs_x(abs_x), abs_y(abs_y)
     {
-        gtk_widget_set_usize(img, width, height);
     }
 };
 
 #include <sstream>
-const string get_coord_path2(int abs_x, int abs_y)
-{
-    // Start centered near Ams
-    int tile_x = 64 + abs_x;
-    int tile_y = 43 + abs_y;
-    stringstream urlss, fnamess;
-    urlss << "http://tile.openstreetmap.org/7/" << tile_x << "/" << tile_y << ".png";
-    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-    string url = urlss.str();
-    string fname = fnamess.str();
-    cout << "Loading " << url << endl;
-
-    wget(url, fname);
-    return fname;
-}
-
-const string get_coord_path3(int abs_x, int abs_y)
-{
-    // Start centered near Ams
-    int tile_x = 64 + abs_x;
-    int tile_y = 41 + abs_y;
-    stringstream urlss, fnamess;
-    urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << tile_x << "/" << tile_y << ".jpg";
-    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-    string url = urlss.str();
-    string fname = fnamess.str();
-    cout << "Loading " << url << endl;
-
-    wget(url, fname);
-    return fname;
-}
-
-const string get_coord_path(int abs_x, int abs_y)
-{
-    // Start centered near Ams
-    int tile_x = 164 + abs_x;
-    int tile_y = 161 + abs_y;
-    stringstream urlss, fnamess;
-    urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/08/" << tile_x << "/" << tile_y << ".jpg";
-    fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-    string url = urlss.str();
-    string fname = fnamess.str();
-    cout << "Loading " << url << endl;
-
-    wget(url, fname);
-    return fname;
-}
-
 
 map<long, string> map_tile_cache;
 
-Scr_Img* mk_scr_img(int abs_x, int abs_y, int width, int height)
-{
-    abs_x = abs_x / 256;
-    abs_y = abs_y / 256;
-    auto it = map_tile_cache.find(abs_x * 1000 + abs_y);
-    if (it != map_tile_cache.end()) return new Scr_Img(it->second, abs_x, abs_y, width, height);
+struct Map_Tile_Generator {
+    static Scr_Img* generate_tile(int abs_x, int abs_y)
+    {
+        auto it = map_tile_cache.find(abs_x * 1000 + abs_y);
+        if (it != map_tile_cache.end()) return new Scr_Img(it->second, abs_x, abs_y);
 
-    const string& path = get_coord_path(abs_x, abs_y);
-    if (path == "") return NULL;
+        const string& path = get_coord_path(abs_x, abs_y);
+        if (path == "") return NULL;
 
-    map_tile_cache[abs_x * 1000 + abs_y] = path;
-    return new Scr_Img(path, abs_x, abs_y, width, height);
-}
+        map_tile_cache[abs_x * 1000 + abs_y] = path;
+        return new Scr_Img(path, abs_x, abs_y);
+    }
+
+    static const string get_coord_path(int abs_x, int abs_y)
+    {
+        // Start centered near Ams
+        int tile_x = 64 + abs_x;
+        int tile_y = 43 + abs_y;
+        stringstream urlss, fnamess;
+        urlss << "http://tile.openstreetmap.org/7/" << tile_x << "/" << tile_y << ".png";
+        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+        string url = urlss.str();
+        string fname = fnamess.str();
+        cout << "Loading " << url << endl;
+
+        wget(url, fname);
+        return fname;
+    }
+
+    static const string get_coord_path3(int abs_x, int abs_y)
+    {
+        // Start centered near Ams
+        int tile_x = 64 + abs_x;
+        int tile_y = 41 + abs_y;
+        stringstream urlss, fnamess;
+        urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << tile_x << "/" << tile_y << ".jpg";
+        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+        string url = urlss.str();
+        string fname = fnamess.str();
+        cout << "Loading " << url << endl;
+
+        wget(url, fname);
+        return fname;
+    }
+
+    static const string get_coord_path4(int abs_x, int abs_y)
+    {
+        // Start centered near Ams
+        int tile_x = 164 + abs_x;
+        int tile_y = 161 + abs_y;
+        stringstream urlss, fnamess;
+        urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/08/" << tile_x << "/" << tile_y << ".jpg";
+        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
+        string url = urlss.str();
+        string fname = fnamess.str();
+        cout << "Loading " << url << endl;
+
+        wget(url, fname);
+        return fname;
+    }
+
+    typedef Scr_Img UI_Tile_Image;
+};
 
 
 #include "gtk_helper/mouse_draggable.h"
 
+template <class Tile_Generator>
 class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 {
     struct Point {
         int x, y;
         Point(int x, int y) : x(x), y(y) {}
+
+        bool operator < (const Point& pt) const {
+            if (x == pt.x) return y < pt.y;
+            return x < pt.x;
+        }
+
         const Point& operator -= (const Point &p) { x -= p.x; y -= p.y; return *this; }
         const Point& operator += (const Point &p) { x += p.x; y += p.y; return *this; }
         Point operator + (const Point &p) const { return Point(x + p.x, y + p.y); }
@@ -338,23 +344,22 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
     int tile_height, tile_width;
     int tiles_to_cache;
 
-    int canvas_height, canvas_width;
     Point current_pos;
 
-    vector<Scr_Img*> tiles;
+    typedef typename Tile_Generator::UI_Tile_Image UI_Tile_Image;
 
-    Scrolling_Image()
+    vector<UI_Tile_Image*> tiles;
+
+    Scrolling_Image(unsigned default_height, unsigned default_width)
             : Mouse_Draggable::Mouse_Draggable(gtk_layout_new(NULL, NULL)),
               tile_height(256), tile_width(256), tiles_to_cache(3),
-              canvas_height(512), canvas_width(300),
               current_pos(0, 0)
     {
         canvas_window = gtk_scrolled_window_new(NULL, NULL);
         gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), this->ui_widget());
 
-        // TODO: Needed?
-        gtk_widget_set_usize(this->ui_widget(), canvas_height, canvas_width);
-        gtk_widget_set_usize(canvas_window, canvas_height, canvas_width);
+        gtk_widget_set_usize(this->ui_widget(), default_height, default_width);
+        gtk_widget_set_usize(canvas_window, default_height, default_width);
 
         this->update_things();
     }
@@ -399,29 +404,29 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
                 Point tile_coords(x, y);
 
                 // Take care of the real rendering
-                this->render_tile(phys_offset, tile_coords);
+                render_tile(phys_offset, tile_coords);
             }
         }
     }
 
-    map<long, Scr_Img*> tiles_map_cache_foo;
+    map<Point, UI_Tile_Image*> tiles_cache;
     void render_tile(const Point &tile_render_point, const Point &tile_coords)
     {
-        auto foobar = [](const Point &pt) -> long { return (pt.x * 10000) + pt.y; };
-
-        auto it = tiles_map_cache_foo.find(foobar(tile_coords));
-        if (it != tiles_map_cache_foo.end())
+        auto it = tiles_cache.find(tile_coords);
+        if (it != tiles_cache.end())
         {
-            auto img = it->second;
-            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
-            gtk_widget_show(img->img);
+            auto img_widget = it->second;
+            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img_widget->img, tile_render_point.x, tile_render_point.y);
+            gtk_widget_show(img_widget->img);
 
         } else {
             // Get the tile for the square x,y
-            auto img = mk_scr_img(tile_coords.x, tile_coords.y, tile_width, tile_height);
+            int mapped_coords_x = tile_coords.x / tile_width;
+            int mapped_coords_y = tile_coords.y / tile_width;
+            auto img = Tile_Generator::generate_tile(mapped_coords_x, mapped_coords_y);
             if (img) {
                 tiles.push_back(img);
-                tiles_map_cache_foo[foobar(tile_render_point)] = img;
+                tiles_cache[tile_render_point] = img;
 
                 gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
                 gtk_widget_show(img->img);
@@ -438,7 +443,7 @@ int main(int argc, char *argv[])
     Gtk_Main_Window wnd;
 
     App app;
-    Scrolling_Image img;
+    Scrolling_Image<Map_Tile_Generator> img(500, 500);
 
     Gtk_Helper::Gtk_HBox box(app.dirs, Gtk_Helper::Gtk_HBox::Dont_Expand,
                              app.imgs, Gtk_Helper::Gtk_HBox::Expand,
