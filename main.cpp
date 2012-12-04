@@ -256,51 +256,52 @@ struct Map_Tile_Generator {
 
     static const string get_coord_path(int abs_x, int abs_y)
     {
-        // Start centered near Ams
-        int tile_x = 64 + abs_x;
-        int tile_y = 43 + abs_y;
-        stringstream urlss, fnamess;
-        urlss << "http://tile.openstreetmap.org/7/" << tile_x << "/" << tile_y << ".png";
-        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-        string url = urlss.str();
-        string fname = fnamess.str();
-        cout << "Loading " << url << endl;
+        typedef Map_Quest Map;
+
+        int tile_x = Map::tile_offset_x + abs_x;
+        int tile_y = Map::tile_offset_y + abs_y;
+        auto url = Map::get_tile_url(tile_x, tile_y);
+        auto fname = Map::get_tile_fname(tile_x, tile_y);
 
         wget(url, fname);
         return fname;
     }
 
-    static const string get_coord_path3(int abs_x, int abs_y)
+    struct Open_Street_Map
     {
-        // Start centered near Ams
-        int tile_x = 64 + abs_x;
-        int tile_y = 41 + abs_y;
-        stringstream urlss, fnamess;
-        urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << tile_x << "/" << tile_y << ".jpg";
-        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-        string url = urlss.str();
-        string fname = fnamess.str();
-        cout << "Loading " << url << endl;
+        static const int tile_offset_x = 64;
+        static const int tile_offset_y = 41;
 
-        wget(url, fname);
-        return fname;
-    }
+        static const string get_tile_url(int x, int y) {
+            stringstream urlss;
+            urlss << "http://tile.openstreetmap.org/7/" << x << "/" << y << ".png";
+            return urlss.str();
+        }
 
-    static const string get_coord_path4(int abs_x, int abs_y)
+        static const string get_tile_fname(int x, int y) {
+            stringstream fnamess;
+            fnamess << "map/img" << x << "x" << y << ".png";
+            return fnamess.str();
+        }
+    };
+
+    struct Map_Quest
     {
-        // Start centered near Ams
-        int tile_x = 164 + abs_x;
-        int tile_y = 161 + abs_y;
-        stringstream urlss, fnamess;
-        urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/08/" << tile_x << "/" << tile_y << ".jpg";
-        fnamess << "map/img" << tile_x << "x" << tile_y << ".png";
-        string url = urlss.str();
-        string fname = fnamess.str();
-        cout << "Loading " << url << endl;
+        static const int tile_offset_x = 64;
+        static const int tile_offset_y = 41;
 
-        wget(url, fname);
-        return fname;
-    }
+        static const string get_tile_url(int x, int y) {
+            stringstream urlss;
+            urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << x << "/" << y << ".jpg";
+            return urlss.str();
+        }
+
+        static const string get_tile_fname(int x, int y) {
+            stringstream fnamess;
+            fnamess << "map/img" << x << "x" << y << ".png";
+            return fnamess.str();
+        }
+    };
 
     typedef Scr_Img UI_Tile_Image;
 };
