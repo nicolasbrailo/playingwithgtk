@@ -224,6 +224,7 @@ struct Scr_Img
 
 struct Map_Tile_Generator
 {
+    // TODO: Investigate other map providers @ http://www.netmagazine.com/features/top-seven-alternatives-google-maps-api
 
     int zoom_level;
     int map_offset_x, map_offset_y;
