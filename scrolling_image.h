@@ -32,6 +32,11 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         this->update_tiles();
     }
 
+    void mouse_clicked(int x, int y)
+    {
+        cout << "Clicked at " << x << "x" << y << endl;
+    }
+
     GtkWidget *canvas_window;
 
     int tile_height, tile_width;

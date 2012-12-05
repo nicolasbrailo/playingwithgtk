@@ -34,7 +34,8 @@ class Mouse_Draggable
 
         GtkWidget* ui_widget(){ return this->widget; }
 
-        virtual void mouse_dragged(int dx, int dy) = 0;
+        virtual void mouse_dragged(int /*dx*/, int /*dy*/) {}
+        virtual void mouse_clicked(int /*x*/, int /*y*/) {}
 
     private:
         bool mouse_moved(int x, int y) {
@@ -60,8 +61,17 @@ class Mouse_Draggable
             drag_start_y = y;
         }
 
-        void released(int, int) {
+        void released(int x, int y) {
             mouse_is_pressed = false;
+
+            int dx = x - drag_start_x;
+            int dy = y - drag_start_y;
+
+            // If we're within the move_threshold then we'd have never fired a
+            // mouse dragged event. We'll fire a mouse clicked event instead.
+            if (dx < move_threshold_px and dx > -move_threshold_px)
+                if (dy < move_threshold_px and dy > -move_threshold_px)
+                    mouse_clicked(x, y);
         }
 
 #define FWD_CALL(method_name) \
