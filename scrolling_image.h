@@ -1,10 +1,10 @@
 #ifndef INCL_SCROLLING_IMAGE_H
 #define INCL_SCROLLING_IMAGE_H
 
-#include "gtk_helper/mouse_draggable.h"
+#include "gtk_helper/slippy_controller.h"
 
 template <class Tile_Generator, class Cache_Clean_Up_Policy>
-class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
+class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
 {
     struct Point {
         int x, y;
@@ -32,6 +32,11 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         this->update_tiles();
     }
 
+    void mouse_scrolled(int x, int y)
+    {
+        cout << "Scroll on " << x <<"x" << y << endl;
+    }
+
     void mouse_clicked(int x, int y)
     {
         // click_point + current_pos = absolute (physical) offset in the map
@@ -40,24 +45,16 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_width;
 
-        unsigned map_offset_x = 64;
-        unsigned map_offset_y = 41;
-        click_coords_x += map_offset_x;
-        click_coords_y += map_offset_y;
+        double real_coords_x, real_coords_y;
+        Tile_Generator::map_tile_pos_to_coords(click_coords_x, click_coords_y,
+                                               &real_coords_x, &real_coords_y);
 
-        unsigned zoom_level = 7;
-        unsigned tiles_count = pow(2, zoom_level);
+        cout << "Clicked " << real_coords_x << "x" << real_coords_y << endl;
 
-        double lon = 360 * (click_coords_x / tiles_count) - 180;
-        double lat = 360 * (click_coords_y / tiles_count) - 180;
-
-        double n = M_PI - 2.0 * M_PI * click_coords_y / tiles_count;
-        lat = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-
-        cout << "Clicked " << click_coords_x << "x" << click_coords_y
-             << " in a map with " << tiles_count << "x" << tiles_count << " tiles "
-             << " coords: lon " << lon << "x" << lat
-             << endl;
+        double xx, yy;
+        Tile_Generator::map_coords_to_tile(real_coords_x, real_coords_y, &xx, &yy);
+        cout << "Clicked " << real_coords_x << "x" << real_coords_y
+             << " == tile(" << xx << "x" << yy << ")" << endl;
     }
 
 
@@ -77,7 +74,7 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
     operator GtkWidget* (){ return this->canvas_window; }
 
     Scrolling_Image(unsigned default_height, unsigned default_width)
-            : Mouse_Draggable::Mouse_Draggable(gtk_layout_new(NULL, NULL)),
+            : Slippy_Controller::Slippy_Controller(gtk_layout_new(NULL, NULL)),
               tile_height(256), tile_width(256), tiles_to_prefetch(3),
               current_pos(0, 0)
     {

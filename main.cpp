@@ -225,14 +225,74 @@ struct Scr_Img
 struct Map_Tile_Generator {
     static Scr_Img* generate_tile(int coords_x, int coords_y)
     {
-        const string& path = get_coord_path(coords_x, coords_y);
+        const string& path = get_coord_path(7, coords_x, coords_y);
         // TODO: Check if path already exists
         if (path == "") return NULL;
         return new Scr_Img(path, coords_x, coords_y);
     }
 
-    static const string get_coord_path(int coords_x, int coords_y)
+    static void get_zoom_in_tile_coord(int tile_x, int tile_y,
+                                       int *z_tile_x, int *z_tile_y)
     {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        // Since the next zoom level will have count*2 tiles, there will be
+        // 4 subtiles for each tile if zoom in one level; this means also
+        // that the upper left tile in the next zoom level will be 2*coords
+        *z_tile_x = tile_x * 2;
+        *z_tile_y = tile_y * 2;
+    }
+
+    static void get_zoom_out_tile_coord(int tile_x, int tile_y,
+                                        int *z_tile_x, int *z_tile_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        // Since the next zoom level will have count*2 tiles, there will be
+        // 4 subtiles for each tile if zoom in one level; this means also
+        // that the upper left tile in the next zoom level will be 2*coords
+        *z_tile_x = tile_x / 2;
+        *z_tile_y = tile_y / 2;
+    }
+
+    static void map_tile_pos_to_coords(double tile_x, double tile_y,
+                                       double *coord_x, double *coord_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        typedef Open_Street_Map Map;
+        tile_x = tile_x + Map::tile_offset_x;
+        tile_y = tile_y + Map::tile_offset_y;
+
+        unsigned zoom_level = 7;
+        unsigned tiles_count = pow(2, zoom_level);
+
+        double lon = 360 * (tile_x / tiles_count) - 180;
+        double n = M_PI - 2.0 * M_PI * tile_y / tiles_count;
+        double lat = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+
+        *coord_x = lon;
+        *coord_y = lat;
+    }
+
+    static void map_coords_to_tile(double coord_x, double coord_y,
+                                       double *tile_x, double *tile_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        typedef Open_Street_Map Map;
+
+        unsigned zoom_level = 7;
+        unsigned tiles_count = pow(2, zoom_level);
+
+        *tile_x = tiles_count * (coord_x + 180) / 360;
+        *tile_x = *tile_x - Map::tile_offset_x;
+
+        *tile_y = (1.0 - log( tan(coord_y * M_PI/180.0) + 1.0 / cos(coord_y * M_PI/180.0)) / M_PI) / 2.0 * tiles_count; 
+        *tile_y = *tile_y - Map::tile_offset_y;
+    }
+
+
+
+    static const string get_coord_path(int zoom, int coords_x, int coords_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
         typedef Open_Street_Map Map;
 
         int tile_x = Map::tile_offset_x + coords_x;
@@ -257,9 +317,9 @@ struct Map_Tile_Generator {
         static const int tile_offset_x = 64;
         static const int tile_offset_y = 41;
 
-        static const string get_tile_url(int x, int y) {
+        static const string get_tile_url(int zoom, int x, int y) {
             stringstream urlss;
-            urlss << "http://tile.openstreetmap.org/7/" << x << "/" << y << ".png";
+            urlss << "http://tile.openstreetmap.org/"<< zoom <<"/" << x << "/" << y << ".png";
             return urlss.str();
         }
 
@@ -275,9 +335,9 @@ struct Map_Tile_Generator {
         static const int tile_offset_x = 64;
         static const int tile_offset_y = 41;
 
-        static const string get_tile_url(int x, int y) {
+        static const string get_tile_url(int zoom, int x, int y) {
             stringstream urlss;
-            urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/07/" << x << "/" << y << ".jpg";
+            urlss << "http://oatile1.mqcdn.com/tiles/1.0.0/sat/" << zoom << "/" << x << "/" << y << ".jpg";
             return urlss.str();
         }
 
