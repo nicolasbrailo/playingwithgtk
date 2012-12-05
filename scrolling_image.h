@@ -40,7 +40,24 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_width;
 
-        cout << "Clicked " << click_coords_x << "x" << click_coords_y << endl;
+        unsigned map_offset_x = 64;
+        unsigned map_offset_y = 41;
+        click_coords_x += map_offset_x;
+        click_coords_y += map_offset_y;
+
+        unsigned zoom_level = 7;
+        unsigned tiles_count = pow(2, zoom_level);
+
+        double lon = 360 * (click_coords_x / tiles_count) - 180;
+        double lat = 360 * (click_coords_y / tiles_count) - 180;
+
+        double n = M_PI - 2.0 * M_PI * click_coords_y / tiles_count;
+        lat = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+
+        cout << "Clicked " << click_coords_x << "x" << click_coords_y
+             << " in a map with " << tiles_count << "x" << tiles_count << " tiles "
+             << " coords: lon " << lon << "x" << lat
+             << endl;
     }
 
 

@@ -220,6 +220,8 @@ struct Scr_Img
 #include <sstream>
 #include <fstream>
 
+#include <math.h>
+
 struct Map_Tile_Generator {
     static Scr_Img* generate_tile(int coords_x, int coords_y)
     {
