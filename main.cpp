@@ -304,7 +304,7 @@ struct Map_Tile_Generator
     static const string get_coord_path(int zoom, int coords_x, int coords_y, int map_offset_x, int map_offset_y)
     {
         // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        typedef Map_Quest Map;
+        typedef Open_Street_Map Map;
 
         int tile_x = map_offset_x + coords_x;
         int tile_y = map_offset_y + coords_y;
