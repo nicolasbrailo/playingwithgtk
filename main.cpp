@@ -297,7 +297,7 @@ struct Map_Tile_Generator {
 
         int tile_x = Map::tile_offset_x + coords_x;
         int tile_y = Map::tile_offset_y + coords_y;
-        auto fname = Map::get_tile_fname(tile_x, tile_y);
+        auto fname = Map::get_tile_fname(zoom, tile_x, tile_y);
 
         ifstream cached_file(fname);
         if (cached_file.good())
@@ -323,9 +323,9 @@ struct Map_Tile_Generator {
             return urlss.str();
         }
 
-        static const string get_tile_fname(int x, int y) {
+        static const string get_tile_fname(int zoom, int x, int y) {
             stringstream fnamess;
-            fnamess << "map/img" << x << "x" << y << ".png";
+            fnamess << "map/osm_" << zoom << "x" << x << "x" << y << ".png";
             return fnamess.str();
         }
     };
@@ -341,9 +341,9 @@ struct Map_Tile_Generator {
             return urlss.str();
         }
 
-        static const string get_tile_fname(int x, int y) {
+        static const string get_tile_fname(int zoom, int x, int y) {
             stringstream fnamess;
-            fnamess << "map/img" << x << "x" << y << ".png";
+            fnamess << "map/mq_" << zoom << "x" << x << "x" << y << ".jpg";
             return fnamess.str();
         }
     };
