@@ -34,8 +34,15 @@ class Scrolling_Image : Gtk_Helper::Mouse_Draggable<5>
 
     void mouse_clicked(int x, int y)
     {
-        cout << "Clicked at " << x << "x" << y << endl;
+        // click_point + current_pos = absolute (physical) offset in the map
+        // offset / tile_area = click in map coords (int part is tile number,
+        // float part is offset into tile)
+        double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
+        double click_coords_y = 1.0 * (y + current_pos.y) / tile_width;
+
+        cout << "Clicked " << click_coords_x << "x" << click_coords_y << endl;
     }
+
 
     GtkWidget *canvas_window;
 
