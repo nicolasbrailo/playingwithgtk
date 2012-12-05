@@ -222,10 +222,21 @@ struct Scr_Img
 
 #include <math.h>
 
-struct Map_Tile_Generator {
-    static Scr_Img* generate_tile(int coords_x, int coords_y)
+struct Map_Tile_Generator
+{
+
+    int zoom_level;
+    int map_offset_x, map_offset_y;
+
+    Map_Tile_Generator()
+        : zoom_level(7),
+          map_offset_x(64), map_offset_y(41)
     {
-        const string& path = get_coord_path(7, coords_x, coords_y);
+    }
+
+    Scr_Img* generate_tile(int coords_x, int coords_y) const
+    {
+        const string& path = get_coord_path(zoom_level, coords_x, coords_y, map_offset_x, map_offset_y);
         // TODO: Check if path already exists
         if (path == "") return NULL;
         return new Scr_Img(path, coords_x, coords_y);
@@ -290,13 +301,13 @@ struct Map_Tile_Generator {
 
 
 
-    static const string get_coord_path(int zoom, int coords_x, int coords_y)
+    static const string get_coord_path(int zoom, int coords_x, int coords_y, int map_offset_x, int map_offset_y)
     {
         // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
         typedef Open_Street_Map Map;
 
-        int tile_x = Map::tile_offset_x + coords_x;
-        int tile_y = Map::tile_offset_y + coords_y;
+        int tile_x = map_offset_x + coords_x;
+        int tile_y = map_offset_y + coords_y;
         auto fname = Map::get_tile_fname(zoom, tile_x, tile_y);
 
         ifstream cached_file(fname);
@@ -362,9 +373,10 @@ int main(int argc, char *argv[])
 
     App app;
 
+    Map_Tile_Generator map_gen;
     Scrolling_Image<Map_Tile_Generator,
                     Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>
-                   > img(500, 500);
+                   > img(500, 500, map_gen);
 
     Gtk_Helper::Gtk_HBox box(app.dirs, Gtk_Helper::Gtk_HBox::Dont_Expand,
                              app.imgs, Gtk_Helper::Gtk_HBox::Expand,

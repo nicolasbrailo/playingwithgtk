@@ -32,9 +32,28 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
         this->update_tiles();
     }
 
-    void mouse_scrolled(int x, int y)
+    void mouse_scrolled(bool scroll_up, int x, int y)
     {
-        cout << "Scroll on " << x <<"x" << y << endl;
+        if (scroll_up) {
+            tile_generator.zoom_level += 1;
+            tile_generator.map_offset_x *= 2;
+            tile_generator.map_offset_y *= 2;
+        } else {
+            tile_generator.zoom_level -= 1;
+            tile_generator.map_offset_x /= 2;
+            tile_generator.map_offset_y /= 2;
+        }
+
+        for (auto tile : all_known_tiles)
+        {
+            gtk_widget_destroy(GTK_WIDGET(tile->img));
+            delete tile;
+        }
+
+        tile_coords_cache.clear();
+        all_known_tiles.clear();
+
+        update_tiles();
     }
 
     void mouse_clicked(int x, int y)
@@ -58,6 +77,7 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
     }
 
 
+    Tile_Generator &tile_generator;
     GtkWidget *canvas_window;
 
     int tile_height, tile_width;
@@ -73,8 +93,9 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
     public:
     operator GtkWidget* (){ return this->canvas_window; }
 
-    Scrolling_Image(unsigned default_height, unsigned default_width)
+    Scrolling_Image(unsigned default_height, unsigned default_width, Tile_Generator &tile_generator)
             : Slippy_Controller::Slippy_Controller(gtk_layout_new(NULL, NULL)),
+              tile_generator(tile_generator),
               tile_height(256), tile_width(256), tiles_to_prefetch(3),
               current_pos(0, 0)
     {
@@ -151,7 +172,7 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
 
         } else {
             // Get the tile for the square x,y
-            auto img = Tile_Generator::generate_tile(tile_coords.x, tile_coords.y);
+            auto img = tile_generator.generate_tile(tile_coords.x, tile_coords.y);
             if (img) {
                 tile_coords_cache[tile_coords] = img;
                 all_known_tiles.push_back(img);
