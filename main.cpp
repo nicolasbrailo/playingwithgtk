@@ -306,7 +306,7 @@ struct Map_Tile_Generator {
             return fname;
         }
 
-        auto url = Map::get_tile_url(tile_x, tile_y);
+        auto url = Map::get_tile_url(zoom, tile_x, tile_y);
         cout << "Getting " << url << " into " << fname << endl;
         wget(url, fname);
         return fname;
