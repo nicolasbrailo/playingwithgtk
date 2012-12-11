@@ -36,19 +36,11 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
     {
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_width;
-        cout << "Scroll @ " << click_coords_x << "x" << click_coords_y << endl;
-        click_coords_x += tile_generator.map_offset_x;
-        click_coords_y += tile_generator.map_offset_y;
-        cout << "Scroll+ofst @ " << click_coords_x << "x" << click_coords_y << endl;
 
         if (scroll_up) {
-            tile_generator.zoom_level += 1;
-            tile_generator.map_offset_x = (int)(2 * click_coords_x) - 1;
-            tile_generator.map_offset_y = (int)(2 * click_coords_y) - 1;
+            tile_generator.zoom_in(click_coords_x, click_coords_y);
         } else {
-            tile_generator.zoom_level -= 1;
-            tile_generator.map_offset_x = (int)(click_coords_x / 2) - 1;
-            tile_generator.map_offset_y = (int)(click_coords_y / 2) - 1;
+            tile_generator.zoom_out(click_coords_x, click_coords_y);
         }
 
         for (auto tile : all_known_tiles)

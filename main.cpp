@@ -235,6 +235,26 @@ struct Map_Tile_Generator
     {
     }
 
+    void zoom_in(double click_coords_x, double click_coords_y)
+    {
+        click_coords_x += map_offset_x;
+        click_coords_y += map_offset_y;
+
+        zoom_level -= 1;
+        map_offset_x = (int)(click_coords_x / 2) - 1;
+        map_offset_y = (int)(click_coords_y / 2) - 1;
+    }
+
+    void zoom_out(double click_coords_x, double click_coords_y)
+    {
+        click_coords_x += map_offset_x;
+        click_coords_y += map_offset_y;
+
+        zoom_level += 1;
+        map_offset_x = (int)(2 * click_coords_x) - 1;
+        map_offset_y = (int)(2 * click_coords_y) - 1;
+    }
+
     Scr_Img* generate_tile(int coords_x, int coords_y) const
     {
         const string& path = get_coord_path(zoom_level, coords_x, coords_y, map_offset_x, map_offset_y);
