@@ -34,6 +34,9 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 
     void mouse_scrolled(bool scroll_up, int x, int y)
     {
+        const int tile_width = tile_generator.get_tile_width();
+        const int tile_height = tile_generator.get_tile_height();
+
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_height;
 
@@ -57,6 +60,9 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 
     void mouse_clicked(int x, int y)
     {
+        const int tile_width = tile_generator.get_tile_width();
+        const int tile_height = tile_generator.get_tile_height();
+
         // click_point + current_pos = absolute (physical) offset in the map
         // offset / tile_area = click in map coords (int part is tile number,
         // float part is offset into tile)
@@ -78,7 +84,6 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 
     Tile_Generator &tile_generator;
 
-    int tile_height, tile_width;
     int tiles_to_prefetch;
 
     Point current_pos;
@@ -91,9 +96,8 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
     public:
 
     Slippy_Image(unsigned default_width, unsigned default_height, Tile_Generator &tile_generator)
-            : 
-              tile_generator(tile_generator),
-              tile_height(256), tile_width(256), tiles_to_prefetch(3),
+            : tile_generator(tile_generator),
+              tiles_to_prefetch(3),
               current_pos(0, 0)
     {
         this->set_size(default_width, default_height);
@@ -103,6 +107,9 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
     private:
     void update_tiles()
     {
+        const int tile_width = tile_generator.get_tile_width();
+        const int tile_height = tile_generator.get_tile_height();
+
         // Moding with the tile box, we can align the current pos to a grid
         // determined by the tile width and height; eg if each tile is 10x20
         // and curr pos is 35x42, then curr_pos is 5x2 inside a tile and the

@@ -235,6 +235,9 @@ struct Map_Tile_Generator
     {
     }
 
+    unsigned get_tile_width() const { return 256; }
+    unsigned get_tile_height() const { return 256; }
+
     void zoom_out(double click_coords_x, double click_coords_y)
     {
         click_coords_x += map_offset_x;
