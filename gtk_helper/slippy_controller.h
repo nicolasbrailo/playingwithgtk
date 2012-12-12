@@ -14,7 +14,7 @@ template <int move_threshold_px>
 class Slippy_Controller
 {
     protected:
-        // We need the widget with a protected access, so a chiled object
+        // We need the widget with a protected access, so a child object
         // can use it to mask itself as a plain gtk object
         GtkWidget *widget;
 

@@ -384,7 +384,18 @@ struct Map_Tile_Generator
 };
 
 
-#include "scrolling_image.h"
+#include "slippy_image.h"
+
+class Slippy_Map :
+        public Slippy_Image<
+                    Map_Tile_Generator, 
+                    Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>>
+{
+    public:
+    Slippy_Map(unsigned default_width, unsigned default_height, Map_Tile_Generator &tile_generator)
+        : Slippy_Image::Slippy_Image(default_width, default_height, tile_generator)
+    {}
+};
 
 int main(int argc, char *argv[])
 {
@@ -395,9 +406,7 @@ int main(int argc, char *argv[])
     App app;
 
     Map_Tile_Generator map_gen;
-    Scrolling_Image<Map_Tile_Generator,
-                    Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>
-                   > img(500, 500, map_gen);
+    Slippy_Map img(500, 500, map_gen);
 
     Gtk_Helper::Gtk_HBox box(app.dirs, Gtk_Helper::Gtk_HBox::Dont_Expand,
                              app.imgs, Gtk_Helper::Gtk_HBox::Expand,

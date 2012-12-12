@@ -3,8 +3,46 @@
 
 #include "gtk_helper/slippy_controller.h"
 
+namespace Gtk_Helper {
+
+template <int move_threshold_px>
+class Slippy_Image : public Gtk_Helper::Slippy_Controller<5>
+{
+    GtkWidget *canvas_window;
+
+    public:
+        Slippy_Image()
+            : Slippy_Controller::Slippy_Controller(gtk_layout_new(NULL, NULL))
+        {
+            canvas_window = gtk_scrolled_window_new(NULL, NULL);
+            gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), this->ui_widget());
+        }
+
+        void set_size(unsigned width, unsigned height)
+        {
+            gtk_widget_set_usize(this->ui_widget(), height, width);
+            gtk_widget_set_usize(canvas_window, height, width);
+        }
+
+        void move_image(GtkWidget *img, int x, int y)
+        {
+            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img, x, y);
+            gtk_widget_show(img);
+        }
+
+        void place_image(GtkWidget *img, int x, int y)
+        {
+            gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img, x, y);
+            gtk_widget_show(img);
+        }
+
+        operator GtkWidget* (){ return this->canvas_window; }
+};
+
+} /* namespace Gtk_Helper */
+
 template <class Tile_Generator, class Cache_Clean_Up_Policy>
-class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
+class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 {
     struct Point {
         int x, y;
@@ -61,7 +99,7 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
         // offset / tile_area = click in map coords (int part is tile number,
         // float part is offset into tile)
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
-        double click_coords_y = 1.0 * (y + current_pos.y) / tile_width;
+        double click_coords_y = 1.0 * (y + current_pos.y) / tile_height;
 
         double real_coords_x, real_coords_y;
         Tile_Generator::map_tile_pos_to_coords(click_coords_x, click_coords_y,
@@ -77,7 +115,6 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
 
 
     Tile_Generator &tile_generator;
-    GtkWidget *canvas_window;
 
     int tile_height, tile_width;
     int tiles_to_prefetch;
@@ -90,20 +127,14 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
     vector<UI_Tile_Image*> all_known_tiles;
 
     public:
-    operator GtkWidget* (){ return this->canvas_window; }
 
-    Scrolling_Image(unsigned default_height, unsigned default_width, Tile_Generator &tile_generator)
-            : Slippy_Controller::Slippy_Controller(gtk_layout_new(NULL, NULL)),
+    Slippy_Image(unsigned default_width, unsigned default_height, Tile_Generator &tile_generator)
+            : 
               tile_generator(tile_generator),
               tile_height(256), tile_width(256), tiles_to_prefetch(3),
               current_pos(0, 0)
     {
-        canvas_window = gtk_scrolled_window_new(NULL, NULL);
-        gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), this->ui_widget());
-
-        gtk_widget_set_usize(this->ui_widget(), default_height, default_width);
-        gtk_widget_set_usize(canvas_window, default_height, default_width);
-
+        this->set_size(default_width, default_height);
         this->update_tiles();
     }
 
@@ -166,9 +197,7 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
         if (it != tile_coords_cache.end())
         {
             auto img_widget = it->second;
-            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img_widget->img, tile_render_point.x, tile_render_point.y);
-            gtk_widget_show(img_widget->img);
-
+            this->move_image(img_widget->img, tile_render_point.x, tile_render_point.y);
         } else {
             // Get the tile for the square x,y
             auto img = tile_generator.generate_tile(tile_coords.x, tile_coords.y);
@@ -176,8 +205,7 @@ class Scrolling_Image : Gtk_Helper::Slippy_Controller<5>
                 tile_coords_cache[tile_coords] = img;
                 all_known_tiles.push_back(img);
 
-                gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img->img, tile_render_point.x, tile_render_point.y);
-                gtk_widget_show(img->img);
+                this->place_image(img->img, tile_render_point.x, tile_render_point.y);
             }
         }
     }
