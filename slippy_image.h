@@ -3,44 +3,6 @@
 
 #include "gtk_helper/slippy_controller.h"
 
-namespace Gtk_Helper {
-
-template <int move_threshold_px>
-class Slippy_Image : public Gtk_Helper::Slippy_Controller<5>
-{
-    GtkWidget *canvas_window;
-
-    public:
-        Slippy_Image()
-            : Slippy_Controller::Slippy_Controller(gtk_layout_new(NULL, NULL))
-        {
-            canvas_window = gtk_scrolled_window_new(NULL, NULL);
-            gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(canvas_window), this->ui_widget());
-        }
-
-        void set_size(unsigned width, unsigned height)
-        {
-            gtk_widget_set_usize(this->ui_widget(), height, width);
-            gtk_widget_set_usize(canvas_window, height, width);
-        }
-
-        void move_image(GtkWidget *img, int x, int y)
-        {
-            gtk_layout_move(GTK_LAYOUT(this->ui_widget()), img, x, y);
-            gtk_widget_show(img);
-        }
-
-        void place_image(GtkWidget *img, int x, int y)
-        {
-            gtk_layout_put(GTK_LAYOUT(this->ui_widget()), img, x, y);
-            gtk_widget_show(img);
-        }
-
-        operator GtkWidget* (){ return this->canvas_window; }
-};
-
-} /* namespace Gtk_Helper */
-
 template <class Tile_Generator, class Cache_Clean_Up_Policy>
 class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 {

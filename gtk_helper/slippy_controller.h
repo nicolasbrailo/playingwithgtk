@@ -6,6 +6,13 @@
 
 namespace Gtk_Helper {
 
+struct Slippy_Events_Callbacks
+{
+    virtual void mouse_dragged(int /*dx*/, int /*dy*/) = 0;
+    virtual void mouse_clicked(int /*x*/, int /*y*/) = 0;
+    virtual void mouse_scrolled(bool /* scroll_up */, int /*x*/, int /*y*/) = 0;
+};
+
 /**
  * A wrapper to detect all UI actions related to slippy controllers:
  * mouse clicks, mouse drags and mouse wheel scrool
@@ -14,17 +21,15 @@ template <int move_threshold_px>
 class Slippy_Controller
 {
     protected:
-        // We need the widget with a protected access, so a child object
-        // can use it to mask itself as a plain gtk object
-        GtkWidget *widget;
+        Slippy_Events_Callbacks *callback;
 
     private:
         bool mouse_is_pressed;
         int drag_start_x, drag_start_y;
 
     public:
-        Slippy_Controller(GtkWidget *draggable_widget)
-                : widget(draggable_widget),
+        Slippy_Controller(GtkWidget *widget, Slippy_Events_Callbacks *callback)
+                : callback(callback),
                   mouse_is_pressed(false)
         {
             gtk_widget_add_events(GTK_WIDGET(widget), GDK_BUTTON_RELEASE_MASK);
@@ -36,12 +41,6 @@ class Slippy_Controller
             Gtk_Helper::connect_raw(widget, "motion_notify_event",  &Slippy_Controller::_mouse_moved, this);
             Gtk_Helper::connect_raw(widget, "scroll-event",  &Slippy_Controller::_mouse_scrolled, this);
         }
-
-        GtkWidget* ui_widget(){ return this->widget; }
-
-        virtual void mouse_dragged(int /*dx*/, int /*dy*/) {}
-        virtual void mouse_clicked(int /*x*/, int /*y*/) {}
-        virtual void mouse_scrolled(bool /* scroll_up */, int /*x*/, int /*y*/) {}
 
     private:
         bool mouse_moved(int x, int y) {
@@ -56,7 +55,7 @@ class Slippy_Controller
             drag_start_x = x;
             drag_start_y = y;
 
-            mouse_dragged(dx, dy);
+            callback->mouse_dragged(dx, dy);
 
             return GDK_SHOULD_STOP_PROCESSING;
         }
@@ -77,7 +76,7 @@ class Slippy_Controller
             // mouse dragged event. We'll fire a mouse clicked event instead.
             if (dx < move_threshold_px and dx > -move_threshold_px)
                 if (dy < move_threshold_px and dy > -move_threshold_px)
-                    mouse_clicked(x, y);
+                    callback->mouse_clicked(x, y);
         }
 
 
@@ -92,8 +91,50 @@ class Slippy_Controller
 
         static void _mouse_scrolled(void*, GdkEventScroll* evt,\
                                     Slippy_Controller *self) \
-            { self->mouse_scrolled((evt->direction == GDK_SCROLL_UP), evt->x, evt->y); }
+            { self->callback->mouse_scrolled((evt->direction == GDK_SCROLL_UP), evt->x, evt->y); }
 };
+
+
+/**
+ * Specialization for a Slippy_Controller based on images using
+ * a gtk layout
+ */
+template <int move_threshold_px>
+class Slippy_Image : public Slippy_Events_Callbacks
+{
+    GtkWidget *ui_controller, *canvas;
+    Gtk_Helper::Slippy_Controller<move_threshold_px> slippy_evts;
+
+    public:
+        Slippy_Image()
+            : ui_controller(gtk_scrolled_window_new(NULL, NULL)),
+              canvas(gtk_layout_new(NULL, NULL)),
+              slippy_evts(canvas, this)
+        {
+            gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(ui_controller), canvas);
+        }
+
+        void set_size(unsigned width, unsigned height)
+        {
+            gtk_widget_set_usize(canvas, height, width);
+            gtk_widget_set_usize(ui_controller, height, width);
+        }
+
+        void move_image(GtkWidget *img, int x, int y)
+        {
+            gtk_layout_move(GTK_LAYOUT(canvas), img, x, y);
+            gtk_widget_show(img);
+        }
+
+        void place_image(GtkWidget *img, int x, int y)
+        {
+            gtk_layout_put(GTK_LAYOUT(canvas), img, x, y);
+            gtk_widget_show(img);
+        }
+
+        operator GtkWidget* (){ return this->ui_controller; }
+};
+
 
 
 } /* namespace Gtk_Helper */
