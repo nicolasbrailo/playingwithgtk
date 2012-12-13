@@ -32,6 +32,11 @@ class Image : Gtk_Object
             auto pb =  gdk_pixbuf_loader_get_pixbuf(pb_loader);
             gtk_image_set_from_pixbuf(GTK_IMAGE(this->img), pb);
         }
+
+        void set_from_file(const std::string &path)
+        {
+            gtk_image_set_from_file(GTK_IMAGE(this->img), path.c_str());
+        }
 };
 
 } /* Gtk_Helper */

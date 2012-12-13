@@ -49,7 +49,7 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
             // be non thread safe: this way we can paralelize the cache update
             // and serialize the ui showing, if it's needed; this way we give
             // img the chance to have a "UI mutex"
-            img->update(cached_img->get_length(), cached_img->get_buf());
+            img->update(cached_img);
         }
     }
 };

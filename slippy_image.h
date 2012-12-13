@@ -40,6 +40,10 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
         double click_coords_x = 1.0 * (x + current_pos.x) / tile_width;
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_height;
 
+        double pos_x = tile_width * (click_coords_x - (int)click_coords_x);
+        double pos_y = tile_height * (click_coords_y - (int)click_coords_y);
+        current_pos = Point(pos_x, pos_y);
+
         if (scroll_up) {
             tile_generator.zoom_in(click_coords_x, click_coords_y);
         } else {
@@ -48,7 +52,7 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 
         for (auto tile : all_known_tiles)
         {
-            gtk_widget_destroy(GTK_WIDGET(tile->img));
+            gtk_widget_destroy(GTK_WIDGET(tile->get_raw_ui_ptr()));
             delete tile;
         }
 
@@ -166,7 +170,9 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
         if (it != tile_coords_cache.end())
         {
             auto img_widget = it->second;
-            this->move_image(img_widget->img, tile_render_point.x, tile_render_point.y);
+            // TODO: Pass the img_widget to move_img, let the gtk layer
+            // retrieve back the raw ui ptr!
+            this->move_image(img_widget->get_raw_ui_ptr(), tile_render_point.x, tile_render_point.y);
         } else {
             // Get the tile for the square x,y
             auto img = tile_generator.generate_tile(tile_coords.x, tile_coords.y);
@@ -174,7 +180,9 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
                 tile_coords_cache[tile_coords] = img;
                 all_known_tiles.push_back(img);
 
-                this->place_image(img->img, tile_render_point.x, tile_render_point.y);
+                // TODO: Pass the img_widget to move_img, let the gtk layer
+                // retrieve back the raw ui ptr!
+                this->place_image(img->get_raw_ui_ptr(), tile_render_point.x, tile_render_point.y);
             }
         }
     }

@@ -7,7 +7,6 @@
 class Image : public Gtk_Helper::Image
 {
     const std::string path;
-    thread *t;
 
     public:
         Image(const std::string &deferred_path, const std::string &temp_path)
@@ -16,11 +15,29 @@ class Image : public Gtk_Helper::Image
 
         const std::string& get_path() const { return path; }
 
-        void update(unsigned length, const char *buf)
+        template <class Img_Buffer>
+        void update(Img_Buffer *img)
         {
             Global_UI_Guard ui_guard;
-            this->set_from_png_buff(length, buf);
+            this->set_from_png_buff(img->get_length(), img->get_buf());
             this->draw(); 
+        }
+};
+
+class Image_From_File : public Image
+{
+    public:
+        // TODO: Check if upgrading gcc we can get inherit ctrs
+        Image_From_File(const std::string &deferred_path, const std::string &temp_path)
+                : Image(deferred_path, temp_path)
+        {}
+
+        void update(const std::string &path)
+        {
+            cout << "HOLA" << endl;
+            Global_UI_Guard ui_guard;
+            this->set_from_file(path);
+            this->draw();
         }
 };
 
