@@ -13,7 +13,7 @@ class Image : public Gtk_Helper::Image
             : Gtk_Helper::Image(temp_path), path(deferred_path)
         {}
 
-        const std::string& get_path() const { return path; }
+        virtual const std::string& get_path() const { return path; }
 
         template <class Img_Buffer>
         void update(Img_Buffer *img)
@@ -24,21 +24,21 @@ class Image : public Gtk_Helper::Image
         }
 };
 
-class Image_From_File : public Image
+
+class Image_From_File : public Gtk_Helper::Image
 {
     public:
-        // TODO: Check if upgrading gcc we can get inherit ctrs
-        Image_From_File(const std::string &deferred_path, const std::string &temp_path)
-                : Image(deferred_path, temp_path)
+        Image_From_File(const std::string &temp_path)
+            : Gtk_Helper::Image(temp_path)
         {}
 
         void update(const std::string &path)
         {
-            cout << "HOLA" << endl;
             Global_UI_Guard ui_guard;
             this->set_from_file(path);
             this->draw();
         }
 };
+
 
 #endif /* INCL_IMAGE_H */

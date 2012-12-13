@@ -42,7 +42,7 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
             if (not img) continue;
 
             // Get the img path and retrieve it from cache
-            const string &path = img->get_path();
+            const auto &path = img->get_path();
             auto cached_img = cache[path];
 
             // Now load the image in the UI, done separatedly because it might

@@ -197,6 +197,10 @@ struct App : public Path_Handler::Dir_Changed_CB
 
 
 
+#include <sstream>
+#include <fstream>
+
+#include <math.h>
 
 #include "gtk_helper/button.h"
 #include "gtk_helper/hbox.h"
@@ -204,27 +208,66 @@ struct App : public Path_Handler::Dir_Changed_CB
 #include "wget.h"
 
 
-struct Dummy_Cache
-{
-    const std::string& operator[] (const string &path) const{ return path; }
-};
-
 
 struct Scr_Img : public Image_From_File 
 {
-    int coords_x, coords_y;
+    int coords_x, coords_y, zoom;
 
-    Scr_Img(const std::string &deferred_path, int coords_x, int coords_y)
-        : Image_From_File(deferred_path, "./map_loading.gif"),
-          coords_x(coords_x), coords_y(coords_y)
+    Scr_Img(int coords_x, int coords_y, int zoom)
+        : Image_From_File("./map_loading.gif"),
+          coords_x(coords_x), coords_y(coords_y), zoom(zoom)
     {
     }
+
+    Scr_Img* get_path() { return this; }
 };
 
-#include <sstream>
-#include <fstream>
+struct Dummy_Cache
+{
+    // TODO: Return a ref instead
+    const std::string operator[] (const Scr_Img *img) const
+    {
+        for (int i=0; i<100000; ++i)
+            for (int j=0; j<10000; ++j);
 
-#include <math.h>
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        typedef Open_Street_Map Map;
+
+        auto fname = Map::get_tile_fname(img->zoom, img->coords_x, img->coords_y);
+
+        ifstream cached_file(fname);
+        if (cached_file.good())
+        {
+            cout << "Got from cache " << fname << endl;
+            return fname;
+        }
+
+        auto url = Map::get_tile_url(img->zoom, img->coords_x, img->coords_y);
+        cout << "Getting " << url << " into " << fname << endl;
+        wget(url, fname);
+        return fname;
+    }
+    
+    struct Open_Street_Map
+    {
+        static const int tile_offset_x = 64;
+        static const int tile_offset_y = 41;
+
+        static const string get_tile_url(int zoom, int x, int y) {
+            stringstream urlss;
+            urlss << "http://tile.openstreetmap.org/"<< zoom <<"/" << x << "/" << y << ".png";
+            return urlss.str();
+        }
+
+        static const string get_tile_fname(int zoom, int x, int y) {
+            stringstream fnamess;
+            fnamess << "map/osm_" << zoom << "x" << x << "x" << y << ".png";
+            return fnamess.str();
+        }
+    };
+};
+
+
 
 struct Map_Tile_Generator
 {
@@ -268,34 +311,11 @@ struct Map_Tile_Generator
 
     Scr_Img* generate_tile(int coords_x, int coords_y)
     {
-        const string& path = get_coord_path(zoom_level, coords_x, coords_y, map_offset_x, map_offset_y);
-        // TODO: Check if path already exists
-        if (path == "") return NULL;
-        auto img = new Scr_Img(path, coords_x, coords_y);
-        deferred_image_loader.process(img);
-        return img;
-    }
-
-    static const string get_coord_path(int zoom, int coords_x, int coords_y, int map_offset_x, int map_offset_y)
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        typedef Open_Street_Map Map;
-
         int tile_x = map_offset_x + coords_x;
         int tile_y = map_offset_y + coords_y;
-        auto fname = Map::get_tile_fname(zoom, tile_x, tile_y);
-
-        ifstream cached_file(fname);
-        if (cached_file.good())
-        {
-            cout << "Got from cache " << fname << endl;
-            return fname;
-        }
-
-        auto url = Map::get_tile_url(zoom, tile_x, tile_y);
-        cout << "Getting " << url << " into " << fname << endl;
-        wget(url, fname);
-        return fname;
+        auto img = new Scr_Img(tile_x, tile_y, zoom_level);
+        deferred_image_loader.process(img);
+        return img;
     }
 
 
