@@ -222,159 +222,11 @@ struct Scr_Img : public Image_From_File
     Scr_Img* get_path() { return this; }
 };
 
-struct Dummy_Cache
-{
-    // TODO: Return a ref instead
-    const std::string operator[] (const Scr_Img *img) const
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        typedef Open_Street_Map Map;
-
-        auto fname = Map::get_tile_fname(img->zoom, img->coords_x, img->coords_y);
-
-        ifstream cached_file(fname);
-        if (cached_file.good())
-        {
-            cout << "Got from cache " << fname << endl;
-            return fname;
-        }
-
-        auto url = Map::get_tile_url(img->zoom, img->coords_x, img->coords_y);
-        cout << "Getting " << url << " into " << fname << endl;
-        wget(url, fname);
-        return fname;
-    }
-    
-    struct Open_Street_Map
-    {
-        static const int tile_offset_x = 64;
-        static const int tile_offset_y = 41;
-
-        static const string get_tile_url(int zoom, int x, int y) {
-            stringstream urlss;
-            urlss << "http://tile.openstreetmap.org/"<< zoom <<"/" << x << "/" << y << ".png";
-            return urlss.str();
-        }
-
-        static const string get_tile_fname(int zoom, int x, int y) {
-            stringstream fnamess;
-            fnamess << "map/osm_" << zoom << "x" << x << "x" << y << ".png";
-            return fnamess.str();
-        }
-    };
-};
 
 
-
+// TODO: Investigate other map providers @ http://www.netmagazine.com/features/top-seven-alternatives-google-maps-api
 struct Map_Tile_Generator
 {
-    // TODO: Investigate other map providers @ http://www.netmagazine.com/features/top-seven-alternatives-google-maps-api
-
-    int zoom_level;
-    int map_offset_x, map_offset_y;
-
-    Dummy_Cache dummy_cache;
-    Deferred_Image_Loader<Dummy_Cache, Scr_Img> deferred_image_loader;
-
-    Map_Tile_Generator()
-        : zoom_level(7),
-          map_offset_x(64), map_offset_y(41),
-          deferred_image_loader(dummy_cache, 10)
-    {
-    }
-
-    unsigned get_tile_width() const { return 256; }
-    unsigned get_tile_height() const { return 256; }
-
-    void zoom_out(double click_coords_x, double click_coords_y)
-    {
-        click_coords_x += map_offset_x;
-        click_coords_y += map_offset_y;
-
-        zoom_level -= 1;
-        map_offset_x = (int)(click_coords_x / 2) - 1;
-        map_offset_y = (int)(click_coords_y / 2) - 1;
-    }
-
-    void zoom_in(double click_coords_x, double click_coords_y)
-    {
-        click_coords_x += map_offset_x;
-        click_coords_y += map_offset_y;
-
-        zoom_level += 1;
-        map_offset_x = (int)(2 * click_coords_x) - 1;
-        map_offset_y = (int)(2 * click_coords_y) - 1;
-    }
-
-    Scr_Img* generate_tile(int coords_x, int coords_y)
-    {
-        int tile_x = map_offset_x + coords_x;
-        int tile_y = map_offset_y + coords_y;
-        auto img = new Scr_Img(tile_x, tile_y, zoom_level);
-        deferred_image_loader.process(img);
-        return img;
-    }
-
-
-    static void get_zoom_in_tile_coord(int tile_x, int tile_y,
-                                       int *z_tile_x, int *z_tile_y)
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        // Since the next zoom level will have count*2 tiles, there will be
-        // 4 subtiles for each tile if zoom in one level; this means also
-        // that the upper left tile in the next zoom level will be 2*coords
-        *z_tile_x = tile_x * 2;
-        *z_tile_y = tile_y * 2;
-    }
-
-    static void get_zoom_out_tile_coord(int tile_x, int tile_y,
-                                        int *z_tile_x, int *z_tile_y)
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        // Since the next zoom level will have count*2 tiles, there will be
-        // 4 subtiles for each tile if zoom in one level; this means also
-        // that the upper left tile in the next zoom level will be 2*coords
-        *z_tile_x = tile_x / 2;
-        *z_tile_y = tile_y / 2;
-    }
-
-    static void map_tile_pos_to_coords(double tile_x, double tile_y,
-                                       double *coord_x, double *coord_y)
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        typedef Open_Street_Map Map;
-        tile_x = tile_x + Map::tile_offset_x;
-        tile_y = tile_y + Map::tile_offset_y;
-
-        unsigned zoom_level = 7;
-        unsigned tiles_count = pow(2, zoom_level);
-
-        double lon = 360 * (tile_x / tiles_count) - 180;
-        double n = M_PI - 2.0 * M_PI * tile_y / tiles_count;
-        double lat = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-
-        *coord_x = lon;
-        *coord_y = lat;
-    }
-
-    static void map_coords_to_tile(double coord_x, double coord_y,
-                                       double *tile_x, double *tile_y)
-    {
-        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
-        typedef Open_Street_Map Map;
-
-        unsigned zoom_level = 7;
-        unsigned tiles_count = pow(2, zoom_level);
-
-        *tile_x = tiles_count * (coord_x + 180) / 360;
-        *tile_x = *tile_x - Map::tile_offset_x;
-
-        *tile_y = (1.0 - log( tan(coord_y * M_PI/180.0) + 1.0 / cos(coord_y * M_PI/180.0)) / M_PI) / 2.0 * tiles_count; 
-        *tile_y = *tile_y - Map::tile_offset_y;
-    }
-
-
-
     struct Open_Street_Map
     {
         static const int tile_offset_x = 64;
@@ -410,6 +262,117 @@ struct Map_Tile_Generator
             return fnamess.str();
         }
     };
+
+
+
+    typedef Open_Street_Map Map;
+
+    /**
+     * "cache" object to use with the Deferred_Image_Loader: must generate
+     * a path to a tile from a set of coordinates
+     */
+    struct Deferred_Tile_Fetcher
+    {
+        // TODO: Return a ref instead. Is it of any use keeping a local ref?
+        const std::string operator[] (const Scr_Img *img) const
+        {
+            auto fname = Map::get_tile_fname(img->zoom, img->coords_x, img->coords_y);
+
+            ifstream cached_file(fname);
+            if (cached_file.good())
+            {
+                cout << "Got from cache " << fname << endl;
+                return fname;
+            }
+
+            auto url = Map::get_tile_url(img->zoom, img->coords_x, img->coords_y);
+            cout << "Getting " << url << " into " << fname << endl;
+            wget(url, fname);
+            return fname;
+        }
+    } deferred_tile_fetcher;
+
+    Deferred_Image_Loader<Deferred_Tile_Fetcher, Scr_Img> deferred_tile_loader;
+    int zoom_level;
+    int map_offset_x, map_offset_y;
+    
+
+    Map_Tile_Generator()
+        : deferred_tile_loader(deferred_tile_fetcher, 10),
+          zoom_level(7),
+          map_offset_x(64), map_offset_y(41)
+    {
+    }
+
+    unsigned get_tile_width() const { return 256; }
+    unsigned get_tile_height() const { return 256; }
+
+    void zoom_out(double click_coords_x, double click_coords_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        // Since the next zoom level will have count*2 tiles, there will be
+        // 4 subtiles for each tile if zoom in one level; this means also
+        // that the upper left tile in the next zoom level will be 2*coords
+        zoom_level -= 1;
+        map_offset_x = (int)((click_coords_x + map_offset_x) / 2) - 1;
+        map_offset_y = (int)((click_coords_y + map_offset_y) / 2) - 1;
+    }
+
+    void zoom_in(double click_coords_x, double click_coords_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        // Since the next zoom level will have count*2 tiles, there will be
+        // 4 subtiles for each tile if zoom in one level; this means also
+        // that the upper left tile in the next zoom level will be 2*coords
+        zoom_level += 1;
+        map_offset_x = (int)(2 * (click_coords_x + map_offset_x)) - 1;
+        map_offset_y = (int)(2 * (click_coords_y + map_offset_y)) - 1;
+    }
+
+    Scr_Img* generate_tile(int coords_x, int coords_y)
+    {
+        int tile_x = map_offset_x + coords_x;
+        int tile_y = map_offset_y + coords_y;
+        auto img = new Scr_Img(tile_x, tile_y, zoom_level);
+        deferred_tile_loader.process(img);
+        return img;
+    }
+
+
+    static void map_tile_pos_to_coords(double tile_x, double tile_y,
+                                       double *coord_x, double *coord_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        tile_x = tile_x + Map::tile_offset_x;
+        tile_y = tile_y + Map::tile_offset_y;
+
+        unsigned zoom_level = 7;
+        unsigned tiles_count = pow(2, zoom_level);
+
+        double lon = 360 * (tile_x / tiles_count) - 180;
+        double n = M_PI - 2.0 * M_PI * tile_y / tiles_count;
+        double lat = 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
+
+        *coord_x = lon;
+        *coord_y = lat;
+    }
+
+    static void map_coords_to_tile(double coord_x, double coord_y,
+                                       double *tile_x, double *tile_y)
+    {
+        // http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+        typedef Open_Street_Map Map;
+
+        unsigned zoom_level = 7;
+        unsigned tiles_count = pow(2, zoom_level);
+
+        *tile_x = tiles_count * (coord_x + 180) / 360;
+        *tile_x = *tile_x - Map::tile_offset_x;
+
+        *tile_y = (1.0 - log( tan(coord_y * M_PI/180.0) + 1.0 / cos(coord_y * M_PI/180.0)) / M_PI) / 2.0 * tiles_count; 
+        *tile_y = *tile_y - Map::tile_offset_y;
+    }
+
 
     typedef Scr_Img UI_Tile_Image;
 };
