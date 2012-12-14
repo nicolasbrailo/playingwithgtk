@@ -292,13 +292,20 @@ struct Map_Tile_Generator
         }
     } deferred_tile_fetcher;
 
-    Deferred_Image_Loader<Deferred_Tile_Fetcher, Scr_Img> deferred_tile_loader;
+    typedef Deferred_Image_Loader<Deferred_Tile_Fetcher, Scr_Img> Deferred_Tile_Updater;
+    Deferred_Tile_Updater *deferred_tile_loader;
+
     int zoom_level;
     int map_offset_x, map_offset_y;
     
 
+    ~Map_Tile_Generator()
+    {
+        delete deferred_tile_loader;
+    }
+
     Map_Tile_Generator()
-        : deferred_tile_loader(deferred_tile_fetcher, 10),
+        : deferred_tile_loader(new Deferred_Tile_Updater(deferred_tile_fetcher, 10)),
           zoom_level(7),
           map_offset_x(64), map_offset_y(41)
     {
@@ -334,8 +341,33 @@ struct Map_Tile_Generator
         int tile_x = map_offset_x + coords_x;
         int tile_y = map_offset_y + coords_y;
         auto img = new Scr_Img(tile_x, tile_y, zoom_level);
-        deferred_tile_loader.process(img);
+        deferred_tile_loader->process(img);
         return img;
+    }
+
+    void cleanup_all_stuff()
+    {
+        cout << "Cleanup deferred queue" << endl;
+        // Deleting deferred_tile_loader will purge the update queue
+        delete deferred_tile_loader;
+        deferred_tile_loader = new Deferred_Tile_Updater(deferred_tile_fetcher, 10);
+    }
+
+
+    void destroy(Scr_Img *tile)
+    {
+        delete tile;
+        /*
+        if (tile->safe_to_destroy()) delete tile;
+
+        // We can't directly delete this tile: since it's a deferred image ui
+        // control, we might delete it before the img tile has had the chance
+        // to finish updating. If this happens, we'll delete the object, then
+        // the tile fetcher will be done and it'll try to update the (now
+        // deleted) ui object. Nasal demons ftw. Instead we'll tell it to
+        // delete itself once the update was completed
+        tile->delete_on_update();
+        */
     }
 
 
@@ -383,7 +415,8 @@ struct Map_Tile_Generator
 class Slippy_Map :
         public Slippy_Image<
                     Map_Tile_Generator, 
-                    Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>>
+                    Scrolling_Image_Cache_Policies::Never_Clean>
+                    //Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>>
 {
     public:
     Slippy_Map(unsigned default_width, unsigned default_height, Map_Tile_Generator &tile_generator)

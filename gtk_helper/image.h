@@ -20,6 +20,11 @@ class Image : Gtk_Object
             : img(gtk_image_new_from_file(path.c_str()))
         {}
 
+        virtual ~Image()
+        {
+            gtk_widget_destroy(GTK_WIDGET(img));
+        }
+
     protected:
         void draw() { gtk_widget_show(img); }
 

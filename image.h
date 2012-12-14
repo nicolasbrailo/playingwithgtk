@@ -29,12 +29,15 @@ class Image : public Gtk_Helper::Image
 
 class Image_From_File : public Gtk_Helper::Image
 {
-    bool updated;
+    bool updated, delete_requested;
 
     public:
         Image_From_File(const std::string &temp_path)
-            : Gtk_Helper::Image(temp_path), updated(false)
+            : Gtk_Helper::Image(temp_path), updated(false), delete_requested(false)
         {}
+
+        Image_From_File(const Image_From_File&) = delete;
+        Image_From_File(Image_From_File&) = delete;
 
         ~Image_From_File()
         {
@@ -45,12 +48,26 @@ class Image_From_File : public Gtk_Helper::Image
                 /* lock deleting thread till done */;
         }
 
+        void prepare_to_die() {
+            cout << "On update, I'll just bail out" << endl;
+            delete_requested = true;
+        }
+
         void update(const std::string &path)
         {
+            updated = true;
+            if (delete_requested) {
+                cout << "Update al pedo, me fui" << endl;
+                return;
+            }
+
+            cout << "Update locking ui mutex" << endl;
+
             Global_UI_Guard ui_guard;
             this->set_from_file(path);
             this->draw();
-            updated = true;
+
+            cout << "Unlocked" << endl;
         }
 };
 

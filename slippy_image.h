@@ -51,10 +51,12 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
         }
 
         for (auto tile : all_known_tiles)
-        {
-            gtk_widget_destroy(GTK_WIDGET(tile->get_raw_ui_ptr()));
-            delete tile;
-        }
+            tile->prepare_to_die();
+
+        tile_generator.cleanup_all_stuff();
+
+        for (auto tile : all_known_tiles)
+            tile_generator.destroy(tile);
 
         tile_coords_cache.clear();
         all_known_tiles.clear();
@@ -186,8 +188,8 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
 struct Scrolling_Image_Cache_Policies
 {
     struct Never_Clean {
-        template <class Lst> static void clean_up_pre_render(Lst tiles, int, int){}
-        template <class Lst> static void clean_up_post_render(Lst tiles, int, int){}
+        template <class Lst> static void clean_up_pre_render(Lst, int, int){}
+        template <class Lst> static void clean_up_post_render(Lst, int, int){}
     };
 
     struct No_Cache {
