@@ -27,11 +27,11 @@ struct Map_Tile_Generator
     // More fwd decls
     typedef Deferred_Image_Loader<Deferred_Tile_Fetcher,
                                   Map_Tile> Deferred_Tile_Updater;
-    Deferred_Tile_Updater *deferred_tile_loader;
 
+
+    Deferred_Tile_Updater *deferred_tile_loader;
     int zoom_level;
     int map_offset_x, map_offset_y;
-    
 
     ~Map_Tile_Generator();
     Map_Tile_Generator();
@@ -45,7 +45,6 @@ struct Map_Tile_Generator
     Map_Tile* generate_tile(int coords_x, int coords_y);
 
     void cleanup_all_stuff();
-
 
     void destroy(Map_Tile *tile);
 
