@@ -356,18 +356,13 @@ struct Map_Tile_Generator
 
     void destroy(Scr_Img *tile)
     {
-        delete tile;
-        /*
-        if (tile->safe_to_destroy()) delete tile;
-
         // We can't directly delete this tile: since it's a deferred image ui
         // control, we might delete it before the img tile has had the chance
         // to finish updating. If this happens, we'll delete the object, then
         // the tile fetcher will be done and it'll try to update the (now
         // deleted) ui object. Nasal demons ftw. Instead we'll tell it to
         // delete itself once the update was completed
-        tile->delete_on_update();
-        */
+        tile->be_gone();
     }
 
 

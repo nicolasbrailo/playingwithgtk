@@ -50,16 +50,15 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
             tile_generator.zoom_out(click_coords_x, click_coords_y);
         }
 
-        for (auto tile : all_known_tiles)
-            tile->prepare_to_die();
 
-        tile_generator.cleanup_all_stuff();
-
+        cout << "Asking all images to be deleted" << endl;
         for (auto tile : all_known_tiles)
             tile_generator.destroy(tile);
 
         tile_coords_cache.clear();
         all_known_tiles.clear();
+
+        cout << "Done. Start tiles upd" << endl;
 
         update_tiles();
     }

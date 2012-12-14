@@ -27,17 +27,17 @@ class Image : public Gtk_Helper::Image
 };
 
 
+#include <mutex>
+using std::mutex;
 class Image_From_File : public Gtk_Helper::Image
 {
+    mutex doing_stuff;
     bool updated, delete_requested;
 
     public:
         Image_From_File(const std::string &temp_path)
             : Gtk_Helper::Image(temp_path), updated(false), delete_requested(false)
         {}
-
-        Image_From_File(const Image_From_File&) = delete;
-        Image_From_File(Image_From_File&) = delete;
 
         ~Image_From_File()
         {
@@ -48,16 +48,28 @@ class Image_From_File : public Gtk_Helper::Image
                 /* lock deleting thread till done */;
         }
 
-        void prepare_to_die() {
-            cout << "On update, I'll just bail out" << endl;
+        void be_gone()
+        {
+            doing_stuff.lock();
+            cout << "Rq delete" << endl;
+            if (updated) {
+                cout << "no need to wait" << endl;
+                delete this;
+                return;
+            }
+
             delete_requested = true;
+            cout << "delete scheduled" << endl;
+            doing_stuff.unlock();
         }
 
         void update(const std::string &path)
         {
+            doing_stuff.lock();
             updated = true;
             if (delete_requested) {
-                cout << "Update al pedo, me fui" << endl;
+                cout << "Update not needed me fui" << endl;
+                delete this;
                 return;
             }
 
@@ -68,6 +80,7 @@ class Image_From_File : public Gtk_Helper::Image
             this->draw();
 
             cout << "Unlocked" << endl;
+            doing_stuff.unlock();
         }
 };
 
