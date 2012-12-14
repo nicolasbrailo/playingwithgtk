@@ -120,16 +120,18 @@ class Slippy_Image : public Slippy_Events_Callbacks
             gtk_widget_set_usize(ui_controller, height, width);
         }
 
-        void move_image(GtkWidget *img, int x, int y)
+        template <class Img>
+        void move_image(Img *img, int x, int y)
         {
-            gtk_layout_move(GTK_LAYOUT(canvas), img, x, y);
-            gtk_widget_show(img);
+            gtk_layout_move(GTK_LAYOUT(canvas), img->get_raw_ui_ptr(), x, y);
+            gtk_widget_show(img->get_raw_ui_ptr());
         }
 
-        void place_image(GtkWidget *img, int x, int y)
+        template <class Img>
+        void place_image(Img *img, int x, int y)
         {
-            gtk_layout_put(GTK_LAYOUT(canvas), img, x, y);
-            gtk_widget_show(img);
+            gtk_layout_put(GTK_LAYOUT(canvas), img->get_raw_ui_ptr(), x, y);
+            gtk_widget_show(img->get_raw_ui_ptr());
         }
 
         operator GtkWidget* (){ return this->ui_controller; }

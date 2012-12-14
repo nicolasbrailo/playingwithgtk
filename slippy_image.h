@@ -170,19 +170,14 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
         if (it != tile_coords_cache.end())
         {
             auto img_widget = it->second;
-            // TODO: Pass the img_widget to move_img, let the gtk layer
-            // retrieve back the raw ui ptr!
-            this->move_image(img_widget->get_raw_ui_ptr(), tile_render_point.x, tile_render_point.y);
+            this->move_image(img_widget, tile_render_point.x, tile_render_point.y);
         } else {
             // Get the tile for the square x,y
             auto img = tile_generator.generate_tile(tile_coords.x, tile_coords.y);
             if (img) {
                 tile_coords_cache[tile_coords] = img;
                 all_known_tiles.push_back(img);
-
-                // TODO: Pass the img_widget to move_img, let the gtk layer
-                // retrieve back the raw ui ptr!
-                this->place_image(img->get_raw_ui_ptr(), tile_render_point.x, tile_render_point.y);
+                this->place_image(img, tile_render_point.x, tile_render_point.y);
             }
         }
     }
