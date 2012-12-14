@@ -3,9 +3,9 @@
 using namespace std;
 
 
+#include "gtk_helper/global_ui_guard.h"
 #include "gtk_helper/general.h"
 #include <string>
-
 
 #include <gtk/gtk.h>
 #include <vector>
@@ -16,14 +16,6 @@ typedef int Gdk_Evt_Processing;
 const Gdk_Evt_Processing GDK_SHOULD_CONTINUE_PROCESSING = 0;
 const Gdk_Evt_Processing GDK_SHOULD_STOP_PROCESSING = 0;
 
-
-struct Global_UI_Guard
-{
-    Global_UI_Guard() { gdk_threads_enter(); }
-    ~Global_UI_Guard() { gdk_threads_leave(); }
-
-    static void init() { gdk_threads_init(); }
-};
 
 class Gtk_Main_Window : Gtk_Helper::Gtk_Object
 {
@@ -197,15 +189,11 @@ struct App : public Path_Handler::Dir_Changed_CB
 
 
 
-#include <sstream>
-#include <fstream>
 
-#include <math.h>
 
 #include "gtk_helper/button.h"
 #include "gtk_helper/hbox.h"
 
-#include "wget.h"
 
 
 #include "map_tile_generator.h"

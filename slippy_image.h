@@ -75,13 +75,13 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
         double click_coords_y = 1.0 * (y + current_pos.y) / tile_height;
 
         double real_coords_x, real_coords_y;
-        Tile_Generator::map_tile_pos_to_coords(click_coords_x, click_coords_y,
+        tile_generator.map_tile_pos_to_coords(click_coords_x, click_coords_y,
                                                &real_coords_x, &real_coords_y);
 
         cout << "Clicked " << real_coords_x << "x" << real_coords_y << endl;
 
         double xx, yy;
-        Tile_Generator::map_coords_to_tile(real_coords_x, real_coords_y, &xx, &yy);
+        tile_generator.map_coords_to_tile(real_coords_x, real_coords_y, &xx, &yy);
         cout << "Clicked " << real_coords_x << "x" << real_coords_y
              << " == tile(" << xx << "x" << yy << ")" << endl;
     }

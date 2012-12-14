@@ -1,14 +1,15 @@
+#ifndef INCL_DEFERRED_IMAGE_LOADER_H
+#define INCL_DEFERRED_IMAGE_LOADER_H
+
 #include "sync_queue.h"
 #include <vector>
 #include <thread>
-
-#include <iostream>
 
 template <class Cache, class UI_Image> class Deferred_Image_Loader
 {
     Cache &cache;
     Sync_Queue<UI_Image*> queue;
-    vector<thread*> executors_lst;
+    std::vector<std::thread*> executors_lst;
 
     public:
     Deferred_Image_Loader(Cache &cache, unsigned executors)
@@ -16,7 +17,7 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
     {
         for (unsigned i=0; i<executors; ++i)
         {
-            auto th = new thread(&Deferred_Image_Loader<Cache, UI_Image>::executor, this);
+            auto th = new std::thread(&Deferred_Image_Loader<Cache, UI_Image>::executor, this);
             executors_lst.push_back(th);
         }
     }
@@ -53,3 +54,5 @@ template <class Cache, class UI_Image> class Deferred_Image_Loader
         }
     }
 };
+
+#endif /* INCL_DEFERRED_IMAGE_LOADER_H */

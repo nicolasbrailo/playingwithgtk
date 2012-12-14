@@ -20,7 +20,7 @@ class Sync_Queue
     void push(Whatever... x...)
     {
         {
-            std::lock_guard<mutex> l(m);
+            std::lock_guard<std::mutex> l(m);
             lst.push(x...);
         }
         cv.notify_one();
@@ -43,13 +43,13 @@ class Sync_Queue
                             return (not self->lst.empty()) or self->signal_end;
                         };
 
-            std::unique_lock<mutex> l(m);
+            std::unique_lock<std::mutex> l(m);
             cv.wait(l, cond);
         }
 
         if (signal_end) return NULL;
 
-        std::lock_guard<mutex> l(m);
+        std::lock_guard<std::mutex> l(m);
         auto v = lst.front();
         lst.pop();
         return v;

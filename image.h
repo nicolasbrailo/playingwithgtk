@@ -1,8 +1,12 @@
 #ifndef INCL_IMAGE_H
 #define INCL_IMAGE_H
 
+#include "gtk_helper/global_ui_guard.h"
 #include "gtk_helper/image.h"
 #include <string>
+
+#include <iostream>
+using namespace std;
 
 class Image : public Gtk_Helper::Image
 {
