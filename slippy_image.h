@@ -161,8 +161,13 @@ class Slippy_Image : public Gtk_Helper::Slippy_Image<5>
             }
         }
 
-        Cache_Clean_Up_Policy::clean_up_post_render(all_known_tiles,
-                            upper_left_tile_coords.x, upper_left_tile_coords.y);
+        // Each tile "knows" its coords but we need to find it's distance to
+        // the rendering offset, not to the real map, so we need to add the
+        // map offset to our current location to match the tile coords
+        // (It's easier to displace or coords instead of the coords of each tile)
+        auto map_pos_x = upper_left_tile_coords.x + tile_generator.get_offset_x();
+        auto map_pos_y = upper_left_tile_coords.y + tile_generator.get_offset_y();
+        Cache_Clean_Up_Policy::clean_up_post_render(all_known_tiles, map_pos_x, map_pos_y);
     }
 
     void render_tile(const Point &tile_render_point, const Point &tile_coords)

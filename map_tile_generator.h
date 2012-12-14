@@ -24,6 +24,7 @@ struct Map_Tile : public Image_From_File
 
 struct Map_Tile_Generator
 {
+    private:
     // More fwd decls
     typedef Deferred_Image_Loader<Deferred_Tile_Fetcher,
                                   Map_Tile> Deferred_Tile_Updater;
@@ -33,8 +34,13 @@ struct Map_Tile_Generator
     int zoom_level;
     int map_offset_x, map_offset_y;
 
+    public:
+
     ~Map_Tile_Generator();
     Map_Tile_Generator();
+
+    int get_offset_x() const { return map_offset_x; }
+    int get_offset_y() const { return map_offset_y; }
 
     unsigned get_tile_width() const { return 256; }
     unsigned get_tile_height() const { return 256; }

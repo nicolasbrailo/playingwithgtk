@@ -202,8 +202,7 @@ struct App : public Path_Handler::Dir_Changed_CB
 class Slippy_Map :
         public Slippy_Image<
                     Map_Tile_Generator, 
-                    Scrolling_Image_Cache_Policies::Never_Clean>
-                    //Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>>
+                    Scrolling_Image_Cache_Policies::Clean_Tiles_Further_Than<5>>
 {
     public:
     Slippy_Map(unsigned default_width, unsigned default_height, Map_Tile_Generator &tile_generator)
